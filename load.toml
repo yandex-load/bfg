@@ -1,0 +1,52 @@
+[target]
+address = "example.org"
+
+[http2]
+  [http2.defaults]
+  max_streams = 10
+  window_size = 1024
+  frame_size = 2048
+  ha_pack_size = 1024
+
+  [http2.connections.mobile]
+  max_streams = 2
+  window_size = 128
+
+  [http2.connections.desktop]
+  window_size = 4096
+
+[scenarios]
+  [scenarios.get_map]
+  uris = [
+    "/mapkit2/lbs/2.x/location",
+    "/mapkit2/lbs/2.x/location",
+    "/mapkit2/roadevents/2.x/events/get",
+    "/mapkit2/roadevents/2.x/events/add",
+    "/mapkit2/roadevents/2.x/events/vote",
+    "/mapkit2/roadevents/2.x/comments/list",
+  ]
+  [scenarios.get_events]
+  ammo = "./events.ammo"
+  marker = "ev"
+
+[schedules]
+ramp = ["line(1, 10, 1m)", "const(10, 10m)"]
+line = ["line(1, 30, 1m)"]
+
+[pools]
+  [pools.map]
+  scenario = "&scenarios.get_map"
+    [pools.map.streams.mobile]
+    target = "&target.address"
+    connection = "&http2.connections.mobile"
+    count = 35
+    schedule = "&schedules.ramp"
+    [pools.map.streams.desktop]
+    connection = "&http2.connections.desktop"
+    count = "&schedules.line"  # linear growth for number of connections
+
+  [pools.events]
+  scenario = "&scenarios.get_events"
+    [pools.events.streams.desktop]
+    connection = "&http2.connections.desktop"
+    schedule = "&schedules.ramp"
