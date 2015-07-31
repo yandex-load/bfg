@@ -18,9 +18,10 @@ class BFG(object):
     threads in each of them and feeds them with tasks
     """
     def __init__(
-            self, config, gun, ammo):
-        self.config = config
-        self.instances = self.config.get('bfg.instances')
+            self, gun, ammo, results):
+        #self.config = config
+        self.results = results
+        self.instances = 5
         self.gun = gun
         self.ammo = ammo
         LOG.info(
@@ -31,6 +32,7 @@ Gun: {gun.__class__.__name__}
             instances=self.instances,
             gun=gun,
         ))
+        self.results = results
         self.quit = mp.Event()
         self.task_queue = mp.Queue(1024)
         self.pool = [
@@ -39,6 +41,7 @@ Gun: {gun.__class__.__name__}
         self.workers_finished = False
 
     def start(self):
+        self.start_time = time.time()
         for process in self.pool:
             process.daemon = True
             process.start()
@@ -61,7 +64,6 @@ Gun: {gun.__class__.__name__}
         """
         A feeder that runs in distinct thread in main process.
         """
-        self.start_time = time.time()
         for task in self.ammo:
             if self.quit.is_set():
                 LOG.info("Stop feeding: gonna quit")
@@ -114,7 +116,7 @@ Gun: {gun.__class__.__name__}
                 delay = planned_time - time.time()
                 if delay > 0:
                     time.sleep(delay)
-                self.gun.shoot(missile, marker)
+                self.gun.shoot(missile, marker, self.results)
             except (KeyboardInterrupt, SystemExit):
                 return
             except Empty:

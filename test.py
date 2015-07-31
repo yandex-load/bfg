@@ -1,6 +1,7 @@
 import bfg.scheduling
 import bfg.ammo
-from bfg.guns.http import HttpGun
+from bfg.guns.http2 import HttpGun
+from bfg.worker import BFG
 
 
 class Results(object):
@@ -11,12 +12,11 @@ class Results(object):
 def main():
     schedule = bfg.scheduling.create(['line(1,10,1m)'])
     ammo = bfg.ammo.LineReader('ammo.line')
-    gun = HttpGun("http://bsgraphite-gfe01h.yandex.ru")
+    gun = HttpGun("http2bin.org")
     r = Results()
-    lp = zip(schedule, ammo)
-    for ts, a in lp:
-        print(ts, a)
-        print(gun.shoot(a[0], a[1], r))
+    lp = ((ts, missile, marker) for ts, (missile, marker) in zip(schedule, ammo))
+    worker = BFG(gun, lp, r)
+    worker.start()
 
 if __name__ == '__main__':
     main()
