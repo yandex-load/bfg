@@ -8,11 +8,11 @@ address = "example.org"
   frame_size = 2048
   ha_pack_size = 1024
 
-  [http2.connections.mobile]
+  [http2.clients.mobile]
   max_streams = 2
   window_size = 128
 
-  [http2.connections.desktop]
+  [http2.clients.desktop]
   window_size = 4096
 
 [scenarios]
@@ -34,15 +34,15 @@ line = ["line(1, 30, 1m)"]
   scenario = "&scenarios.get_map"
     [bfg.map.pools.mobile]
     target = "&target.address"
-    connection = "&http2.connections.mobile"
+    connection = "&http2.clients.mobile"
     count = 35
     schedule = "&schedules.ramp"
     [bfg.map.pools.desktop]
-    connection = "&http2.connections.desktop"
-    count = "&schedules.line"  # linear growth for number of connections
+    connection = "&http2.clients.desktop"
+    count = "&schedules.line"  # linear growth for number of clients
 
   [bfg.events]
   scenario = "&scenarios.get_events"
     [bfg.events.pools.desktop]
-    connection = "&http2.connections.desktop"
+    connection = "&http2.clients.desktop"
     schedule = "&schedules.ramp"
