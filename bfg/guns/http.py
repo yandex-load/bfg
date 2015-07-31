@@ -1,16 +1,18 @@
-
+import logging
 import requests
+from .measure import Sample
+import time
 
 requests_logger = logging.getLogger('requests')
 requests_logger.setLevel(logging.WARNING)
 
-class HttpGun(AbstractPlugin):
+
+class HttpGun(object):
     SECTION = 'http_gun'
 
-    def __init__(self, core):
+    def __init__(self, base_address):
         self.log = logging.getLogger(__name__)
-        AbstractPlugin.__init__(self, core)
-        self.base_address = self.get_option("base_address")
+        self.base_address = base_address
 
     def shoot(self, missile, marker, results):
         self.log.debug("Missile: %s\n%s", marker, missile)
@@ -22,7 +24,7 @@ class HttpGun(AbstractPlugin):
         rt = int((time.time() - start_time) * 1000)
         data_item = Sample(
             marker,             # marker
-            th.active_count(),  # threads
+            1,  # threads
             rt,                 # overallRT
             httpCode,           # httpCode
             errno,              # netCode
@@ -34,4 +36,4 @@ class HttpGun(AbstractPlugin):
             0,                  # receive
             0,                  # accuracy
         )
-        results.put((int(time.time()), data_item), timeout=1)
+        results.put((int(time.time()), data_item))
