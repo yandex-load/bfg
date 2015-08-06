@@ -5,9 +5,7 @@ You should update Stepper.status.ammo_count and Stepper.status.loop_count in you
 '''
 from .util import get_opener
 from itertools import cycle
-from .module_exceptions import AmmoFileError
-import os.path
-#from . import info
+from .module_exceptions import AmmoFileError, ConfigurationError
 import logging
 
 
@@ -318,3 +316,16 @@ class UriPostReader(object):
                     # info.status.inc_loop_count()
                     chunk_header = read_chunk_header(ammo_file)
                 # info.status.af_position = ammo_file.tell()
+
+
+class AmmoFactory(object):
+    def __init__(self, config):
+        self.config = config
+        self.factory_config = self.config.get('ammo')
+
+    def get(self, key):
+        if key in self.factory_config:
+            return LineReader(self.factory_config.get(key).get("file"))
+        else:
+            raise ConfigurationError(
+                "Configuration for %s ammo not found" % key)

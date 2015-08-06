@@ -3,6 +3,7 @@ Load Plan generators
 '''
 import re
 from .util import parse_duration, solve_quadratic
+from .module_exceptions import ConfigurationError
 from itertools import chain, groupby
 import logging
 
@@ -229,3 +230,16 @@ def create(rps_schedule):
     # info.status.publish('steps', lp.get_rps_list())
     # info.status.lp_len = len(lp)
     return lp
+
+
+class ScheduleFactory(object):
+    def __init__(self, config):
+        self.config = config
+        self.factory_config = self.config.get('schedule')
+
+    def get(self, key):
+        if key in self.factory_config:
+            return create(self.factory_config.get(key))
+        else:
+            raise ConfigurationError(
+                "Configuration for %s schedule not found" % key)

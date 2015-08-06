@@ -17,10 +17,7 @@ address = "example.org"
 
 [scenarios]
   [scenarios.get_map]
-  uris = [
-    "/example/1",
-    "/example/2",
-  ]
+  ammo = "./ammo.line"
   [scenarios.get_events]
   ammo = "./events.ammo"
   marker = "ev"

@@ -21,7 +21,7 @@ class BFG(object):
             self, gun, ammo, results):
         #self.config = config
         self.results = results
-        self.instances = 5
+        self.instances = 10
         self.gun = gun
         self.ammo = ammo
         LOG.info(

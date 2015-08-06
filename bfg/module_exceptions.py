@@ -1,6 +1,6 @@
-class StepperConfigurationError(Exception):
+class ConfigurationError(Exception):
     '''
-    Raised when error in stepper configuration found.
+    Raised when error in configuration found.
     '''
 
 

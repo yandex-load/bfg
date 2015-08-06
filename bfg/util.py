@@ -4,7 +4,7 @@ Utilities: parsers, converters, etc.
 import re
 import logging
 from itertools import islice
-from .module_exceptions import StepperConfigurationError
+from .module_exceptions import ConfigurationError
 import math
 import gzip
 
@@ -38,7 +38,7 @@ def parse_duration(duration):
             if multiplier in multipliers:
                 return int(float(time) * multipliers[multiplier] * 1000)
             else:
-                raise StepperConfigurationError(
+                raise ConfigurationError(
                     'Failed to parse duration: %s' % duration)
         else:
             return int(float(time) * 1000)
