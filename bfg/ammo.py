@@ -319,8 +319,8 @@ class UriPostReader(object):
 
 
 class AmmoFactory(object):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, component_factory):
+        self.config = component_factory.config
         self.factory_config = self.config.get('ammo')
 
     def get(self, key):

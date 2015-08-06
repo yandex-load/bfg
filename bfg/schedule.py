@@ -233,8 +233,8 @@ def create(rps_schedule):
 
 
 class ScheduleFactory(object):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, component_factory):
+        self.config = component_factory.config
         self.factory_config = self.config.get('schedule')
 
     def get(self, key):

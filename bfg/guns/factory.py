@@ -3,8 +3,8 @@ from ..module_exceptions import ConfigurationError
 
 
 class GunFactory(object):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, component_factory):
+        self.config = component_factory.config
         self.factory_config = self.config.get('gun')
 
     def get(self, key):

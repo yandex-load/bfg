@@ -1,33 +1,26 @@
 import pytoml
-from . import schedule as sch
-
-
-FACTORIES = {
-    'schedule': lambda x: {k: sch.create(v) for k, v in x.items()},
-    'bfg': lambda x: x,
-    'scenario': lambda x: x,
-    'http2': lambda x: x,
-    'target': lambda x: x,
-}
+from .module_exceptions import ConfigurationError
+from .schedule import ScheduleFactory
+from .ammo import AmmoFactory
+from .guns import GunFactory
+from .aggregator import AggregatorFactory
+from .worker import BFGFactory
 
 
 class ComponentFactory(object):
-    def init_factory(section, config):
-        if section in FACTORIES:
-            return FACTORIES.get(section)(config)
+    def __init__(self, config_filename):
+        with open(config_filename, 'rb') as fin:
+            self.config = pytoml.load(fin)
+        self.factories = {
+            'schedule': ScheduleFactory(self),
+            'ammo': AmmoFactory(self),
+            'gun': GunFactory(self),
+            'bfg': BFGFactory(self),
+            'aggregator': AggregatorFactory(self),
+        }
 
-    def __init__(self, config):
-        self.config = config
-        self.factories = {}
-        for section, section_config in config.items():
-            self.factories[section] = ComponentFactory.init_factory(
-                section, section_config)
-
-    def get(self, key):
-        return self.factories.get(key)
-
-
-def read(filename):
-    with open(filename, 'rb') as fin:
-        config = pytoml.load(fin)
-    return config
+    def get(self, factory, key):
+        if factory in self.factories:
+            return self.factories.get(factory).get(key)
+        else:
+            raise ConfigurationError("Factory '%s' not found" % factory)

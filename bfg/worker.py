@@ -3,6 +3,7 @@ import time
 import multiprocessing as mp
 import threading as th
 from queue import Empty, Full
+from .module_exceptions import ConfigurationError
 
 
 LOG = logging.getLogger(__name__)
@@ -18,12 +19,12 @@ class BFG(object):
     threads in each of them and feeds them with tasks
     """
     def __init__(
-            self, gun, ammo, results):
+            self, gun, load_plan, results):
         #self.config = config
         self.results = results
         self.instances = 10
         self.gun = gun
-        self.ammo = ammo
+        self.load_plan = load_plan
         LOG.info(
             """
 Instances: {instances}
@@ -64,7 +65,7 @@ Gun: {gun.__class__.__name__}
         """
         A feeder that runs in distinct thread in main process.
         """
-        for task in self.ammo:
+        for task in self.load_plan:
             if self.quit.is_set():
                 LOG.info("Stop feeding: gonna quit")
                 return
@@ -124,3 +125,31 @@ Gun: {gun.__class__.__name__}
                     LOG.debug(
                         "Empty queue. Exiting")
                     return
+
+
+class BFGFactory(object):
+    def __init__(self, component_factory):
+        self.config = component_factory.config
+        self.component_factory = component_factory
+        self.factory_config = self.config.get('bfg')
+
+    def get(self, key):
+        if key in self.factory_config:
+            bfg_config = self.factory_config.get(key)
+            ammo = self.component_factory.get(
+                'ammo', bfg_config.get('ammo'))
+            schedule = self.component_factory.get(
+                'schedule', bfg_config.get('schedule'))
+            lp = (
+                (ts, missile, marker)
+                for ts, (missile, marker) in zip(schedule, ammo))
+            return BFG(
+                gun=self.component_factory.get(
+                    'gun', bfg_config.get('gun')),
+                load_plan=lp,
+                results=self.component_factory.get(
+                    'aggregator', bfg_config.get('aggregator')).results_queue,
+            )
+        else:
+            raise ConfigurationError(
+                "Configuration for '%s' BFG not found" % key)
