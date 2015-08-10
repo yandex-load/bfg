@@ -69,7 +69,7 @@ Gun: {gun.__class__.__name__}
         """
         A feeder that runs in distinct thread in main process.
         """
-        for task in self.load_plan:
+        for timestamp, missile, marker in self.load_plan:
             if self.quit.is_set():
                 LOG.info(
                     "%s observed quit flag and not going to feed anymore",
@@ -79,7 +79,8 @@ Gun: {gun.__class__.__name__}
             # or all workers have exited
             while True:
                 try:
-                    self.task_queue.put(task, timeout=1)
+                    self.task_queue.put(
+                        (timestamp, missile, marker, self.name), timeout=1)
                     break
                 except Full:
                     if self.quit.is_set() or self.workers_finished:
@@ -119,12 +120,15 @@ Gun: {gun.__class__.__name__}
                         "Got poison pill. Exiting %s",
                         mp.current_process().name)
                     return
-                timestamp, missile, marker = task
+                timestamp, missile, marker, scenario = task
                 planned_time = self.start_time + (timestamp / 1000.0)
                 delay = planned_time - time.time()
                 if delay > 0:
                     time.sleep(delay)
-                self.gun.shoot(missile, marker, self.results)
+                self.gun.shoot(
+                    planned_time,
+                    missile, scenario,
+                    marker, self.results)
             except (KeyboardInterrupt, SystemExit):
                 return
             except Empty:

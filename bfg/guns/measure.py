@@ -3,11 +3,13 @@ import time
 from collections import namedtuple
 
 Sample = namedtuple(
-    'Sample', 'ts,scenario,overall,error,code,ext')
+    'Sample', 'ts,scenario,marker,overall,error,code,delay,ext')
 
 
 class StopWatch(object):
-    def __init__(self, scenario):
+    def __init__(self, planned_time, scenario, marker):
+        self.planned_time = planned_time
+        self.marker = marker
         self.start_time = time.time()
         self.end_time = self.start_time
         self.error = False
@@ -38,16 +40,18 @@ class StopWatch(object):
         return Sample(
             int(self.start_time),
             self.scenario,
+            self.marker,
             overall,
             self.error,
             self.code,
+            self.start_time - self.planned_time,
             self.ext,
         )
 
 
 @contextmanager
-def measure(scenario, results):
-    sw = StopWatch(scenario)
+def measure(planned_time, scenario, marker, results):
+    sw = StopWatch(planned_time, scenario, marker)
     yield sw
     sw.stop()
     results.put(sw.as_sample())

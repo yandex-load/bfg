@@ -23,6 +23,16 @@ class LineReader(object):
                 ammo_file.seek(0)
 
 
+class Group(object):
+    def __init__(self, iterable, group_size):
+        self.group_size = group_size
+        self.iterable = iter(iterable)
+
+    def __iter__(self):
+        while True:
+            yield (next(self.iterable) for _ in range(self.group_size))
+
+
 class AmmoFactory(AbstractFactory):
     FACTORY_NAME = 'ammo'
 

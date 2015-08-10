@@ -64,12 +64,15 @@ def main_coro(event_loop):
     aggr = {
         ts: {
             "rps": len(samples),
-            "avg": np.average(list(s.overall for s in samples)),
+            "avg_rt": np.average(list(s.overall for s in samples)),
+            "avg_delay": np.average(list(s.delay for s in samples)),
         } for ts, samples in rs.results.items()
     }
     for ts in sorted(aggr.keys()):
-        print("%s: %s rps, %02dms avg" % (
-            ts, aggr.get(ts).get("rps"), aggr.get(ts).get("avg")))
+        second_data = aggr.get(ts)
+        print("%s: %s rps, %02dms avg %02dms avg delay" % (
+            ts, second_data.get("rps"),
+            second_data.get("avg_rt"), second_data.get("avg_delay")))
 
 
 if __name__ == '__main__':
