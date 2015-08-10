@@ -1,0 +1,22 @@
+[gun.mobile]
+type = 'http2'
+target = "example.org:3000"
+max_streams = 2
+window_size = 128
+
+[ammo.cache]
+file = "./tmp/ammo.line"
+
+[schedule]
+ramp = ["line(1, 10, 10s)", "const(10, 10s)"]
+line = ["line(1, 30, 1m)"]
+
+[aggregator.graphite]
+graphite = "http://graphite.example.org"
+
+[bfg.mobile]
+gun = "mobile"
+instances = 35
+schedule = "ramp"
+aggregator = "graphite"
+ammo = "cache"
