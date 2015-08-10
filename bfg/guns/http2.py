@@ -1,7 +1,7 @@
 import logging
 import hyper
 from hyper import HTTPConnection
-from .measure import Sample
+from .measure import measure
 import time
 
 
@@ -20,24 +20,8 @@ class HttpGun(object):
         LOG.debug("Missile: %s\n%s", marker, missile)
         LOG.debug("Sending request: %s", self.base_address + missile)
         start_time = time.time()
-        self.conn.request('GET', missile)
-        resp = self.conn.get_response()
-        end_time = time.time()
-        errno = 0
-        httpCode = resp.status
-        rt = int((end_time - start_time) * 1000)
-        data_item = Sample(
-            marker,             # marker
-            1,  # threads
-            rt,                 # overallRT
-            httpCode,           # httpCode
-            errno,              # netCode
-            0,                  # sent
-            0,                  # received
-            0,                  # connect
-            0,                  # send
-            rt,                 # latency
-            0,                  # receive
-            0,                  # accuracy
-        )
-        results.put((int(end_time), data_item))
+        with measure(marker, results) as sw:
+            self.conn.request('GET', missile)
+            resp = self.conn.get_response()
+            sw.stop()
+            sw.set_code(resp.status)

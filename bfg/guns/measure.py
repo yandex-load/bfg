@@ -3,27 +3,51 @@ import time
 from collections import namedtuple
 
 Sample = namedtuple(
-    'Sample', 'marker,threads,overallRT,httpCode,netCode,'
-    'sent,received,connect,send,latency,receive,accuracy')
+    'Sample', 'ts,scenario,overall,error,code,ext')
+
+
+class StopWatch(object):
+    def __init__(self, scenario):
+        self.start_time = time.time()
+        self.end_time = self.start_time
+        self.error = False
+        self.scenario = scenario
+        self.code = None
+        self.ext = {}
+        self.stopped = False
+
+    def start(self):
+        self.start_time = time.time()
+
+    def stop(self):
+        if not self.stopped:
+            self.stopped = True
+            self.end_time = time.time()
+
+    def set_error(self, code=None):
+        if code:
+            self.set_code(code)
+        self.error = True
+
+    def set_code(self, code):
+        self.code = code
+
+    def as_sample(self):
+        overall = int(
+            (self.end_time - self.start_time) * 1000)
+        return Sample(
+            int(self.start_time),
+            self.scenario,
+            overall,
+            self.error,
+            self.code,
+            self.ext,
+        )
 
 
 @contextmanager
-def measure(marker, results):
-    start_time = time.time()
-    yield
-    response_time = int((time.time() - start_time) * 1000)
-    data_item = Sample(
-        marker,             # marker
-        0,  # threads
-        response_time,      # overall response time
-        200,                # httpCode
-        0,                  # netCode
-        0,                  # sent
-        0,                  # received
-        0,                  # connect
-        0,                  # send
-        response_time,      # latency
-        0,                  # receive
-        0,                  # accuracy
-    )
-    results.put((int(time.time()), data_item), timeout=1)
+def measure(scenario, results):
+    sw = StopWatch(scenario)
+    yield sw
+    sw.stop()
+    results.put(sw.as_sample())

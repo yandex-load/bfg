@@ -26,8 +26,8 @@ class ResultsSink(object):
         LOG.info("Results reader started")
         while not self._stopped.is_set():
             try:
-                ts, sample = self.results_queue.get_nowait()
-                self.results.setdefault(ts, []).append(sample)
+                sample = self.results_queue.get_nowait()
+                self.results.setdefault(sample.ts, []).append(sample)
             except queue.Empty:
                 if self._stopped.is_set():
                     LOG.info("Stopping results reader")

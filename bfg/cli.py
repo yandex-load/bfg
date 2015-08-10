@@ -64,7 +64,7 @@ def main_coro(event_loop):
     aggr = {
         ts: {
             "rps": len(samples),
-            "avg": np.average(list(s.overallRT for s in samples)),
+            "avg": np.average(list(s.overall for s in samples)),
         } for ts, samples in rs.results.items()
     }
     for ts in sorted(aggr.keys()):
