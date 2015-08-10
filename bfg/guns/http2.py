@@ -4,22 +4,21 @@ from hyper import HTTPConnection
 from .measure import Sample
 import time
 
-requests_logger = logging.getLogger('requests')
-requests_logger.setLevel(logging.WARNING)
+
+LOG = logging.getLogger(__name__)
 
 
 class HttpGun(object):
     SECTION = 'http_gun'
 
     def __init__(self, base_address):
-        self.log = logging.getLogger(__name__)
         self.base_address = base_address
-        print(base_address)
+        LOG.info("Initialized http2 gun with target '%s'", base_address)
         self.conn = HTTPConnection(base_address, secure=True)
 
     def shoot(self, missile, marker, results):
-        self.log.debug("Missile: %s\n%s", marker, missile)
-        self.log.debug("Sending request: %s", self.base_address + missile)
+        LOG.debug("Missile: %s\n%s", marker, missile)
+        LOG.debug("Sending request: %s", self.base_address + missile)
         start_time = time.time()
         self.conn.request('GET', missile)
         resp = self.conn.get_response()

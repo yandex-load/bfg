@@ -8,7 +8,8 @@ from .worker import BFGFactory
 
 
 class ComponentFactory(object):
-    def __init__(self, config_filename):
+    def __init__(self, config_filename, event_loop):
+        self.event_loop = event_loop
         with open(config_filename, 'rb') as fin:
             self.config = pytoml.load(fin)
         self.factories = {
