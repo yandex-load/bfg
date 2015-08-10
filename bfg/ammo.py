@@ -1,11 +1,5 @@
-'''
-Missile object and generators
-
-You should update Stepper.status.ammo_count and Stepper.status.loop_count in your custom generators!
-'''
-from .util import get_opener
-from itertools import cycle
-from .module_exceptions import AmmoFileError, ConfigurationError
+from .util import get_opener, AbstractFactory
+from .module_exceptions import ConfigurationError
 import logging
 
 
@@ -14,7 +8,7 @@ LOG = logging.getLogger(__name__)
 
 class LineReader(object):
 
-    '''One line -- one missile'''
+    ''' One line -- one missile '''
 
     def __init__(self, filename, **kwargs):
         self.filename = filename
@@ -29,10 +23,8 @@ class LineReader(object):
                 ammo_file.seek(0)
 
 
-class AmmoFactory(object):
-    def __init__(self, component_factory):
-        self.config = component_factory.config
-        self.factory_config = self.config.get('ammo')
+class AmmoFactory(AbstractFactory):
+    FACTORY_NAME = 'ammo'
 
     def get(self, key):
         if key in self.factory_config:

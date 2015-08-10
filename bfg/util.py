@@ -7,6 +7,11 @@ from itertools import islice
 from .module_exceptions import ConfigurationError
 import math
 import gzip
+import yaml
+import logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 def take(number, iter):
@@ -76,3 +81,23 @@ def get_opener(f_path):
         return gzip.open
     else:
         return open
+
+
+class AbstractFactory(object):
+    FACTORY_NAME = ""
+
+    def __init__(self, component_factory):
+        if not self.FACTORY_NAME:
+            raise TypeError(
+                "Trying to create an abstract class"
+                " or did not redefine FACTORY_NAME")
+        self.component_factory = component_factory
+        self.config = component_factory.config
+        self.event_loop = component_factory.event_loop
+        self.factory_config = self.config.get(self.FACTORY_NAME)
+        LOG.info(
+            "%s factory config:\n%s", self.FACTORY_NAME,
+            yaml.safe_dump(self.factory_config))
+
+    def get(self, key):
+        raise NotImplementedError("Calling method from abstract class")

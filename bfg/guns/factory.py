@@ -1,11 +1,10 @@
 from .http2 import HttpGun
+from ..util import AbstractFactory
 from ..module_exceptions import ConfigurationError
 
 
-class GunFactory(object):
-    def __init__(self, component_factory):
-        self.config = component_factory.config
-        self.factory_config = self.config.get('gun')
+class GunFactory(AbstractFactory):
+    FACTORY_NAME = 'gun'
 
     def get(self, key):
         if key in self.factory_config:

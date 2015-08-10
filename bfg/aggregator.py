@@ -2,6 +2,7 @@ import threading as th
 import queue
 import multiprocessing as mp
 from .module_exceptions import ConfigurationError
+from .util import AbstractFactory
 import asyncio
 import logging
 
@@ -35,11 +36,11 @@ class ResultsSink(object):
                     yield from asyncio.sleep(1)
 
 
-class AggregatorFactory(object):
+class AggregatorFactory(AbstractFactory):
+    FACTORY_NAME = "aggregator"
+
     def __init__(self, component_factory):
-        self.event_loop = component_factory.event_loop
-        self.config = component_factory.config
-        self.factory_config = self.config.get('aggregator')
+        super().__init__(component_factory)
         self.results = ResultsSink(self.event_loop)
 
     def get(self, key):

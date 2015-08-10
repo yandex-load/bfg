@@ -5,6 +5,10 @@ from .ammo import AmmoFactory
 from .guns import GunFactory
 from .aggregator import AggregatorFactory
 from .worker import BFGFactory
+import logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 class ComponentFactory(object):
@@ -12,6 +16,7 @@ class ComponentFactory(object):
         self.event_loop = event_loop
         with open(config_filename, 'rb') as fin:
             self.config = pytoml.load(fin)
+        LOG.info("Configuring component factory")
         self.factories = {
             'schedule': ScheduleFactory(self),
             'ammo': AmmoFactory(self),

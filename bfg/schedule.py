@@ -2,7 +2,7 @@
 Load Plan generators
 '''
 import re
-from .util import parse_duration, solve_quadratic
+from .util import parse_duration, solve_quadratic, AbstractFactory
 from .module_exceptions import ConfigurationError
 from itertools import chain, groupby
 import logging
@@ -224,7 +224,7 @@ def create(rps_schedule):
     [0]
 
     '''
-    LOG.info("Creating load plan for '%s'", rps_schedule)
+    LOG.info("Creating load plan %s", rps_schedule)
     if len(rps_schedule) > 1:
         lp = Composite([StepFactory.produce(step_config)
                        for step_config in rps_schedule])
@@ -236,10 +236,8 @@ def create(rps_schedule):
     return lp
 
 
-class ScheduleFactory(object):
-    def __init__(self, component_factory):
-        self.config = component_factory.config
-        self.factory_config = self.config.get('schedule')
+class ScheduleFactory(AbstractFactory):
+    FACTORY_NAME = 'schedule'
 
     def get(self, key):
         if key in self.factory_config:

@@ -3,6 +3,7 @@ import time
 import multiprocessing as mp
 import threading as th
 from queue import Empty, Full
+from .util import AbstractFactory
 from .module_exceptions import ConfigurationError
 
 
@@ -127,11 +128,8 @@ Gun: {gun.__class__.__name__}
                     return
 
 
-class BFGFactory(object):
-    def __init__(self, component_factory):
-        self.config = component_factory.config
-        self.component_factory = component_factory
-        self.factory_config = self.config.get('bfg')
+class BFGFactory(AbstractFactory):
+    FACTORY_NAME = 'bfg'
 
     def get(self, key):
         if key in self.factory_config:
