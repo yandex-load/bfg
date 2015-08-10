@@ -11,4 +11,4 @@ class GunFactory(AbstractFactory):
             return HttpGun(self.factory_config.get(key).get('target'))
         else:
             raise ConfigurationError(
-                "Configuration for %s schedule not found" % key)
+                "Configuration for %s gun not found" % key)

@@ -16,7 +16,6 @@ class ComponentFactory(object):
         self.event_loop = event_loop
         with open(config_filename, 'rb') as fin:
             self.config = pytoml.load(fin)
-        LOG.info("Configuring component factory")
         self.factories = {
             'schedule': ScheduleFactory(self),
             'ammo': AmmoFactory(self),
@@ -25,7 +24,13 @@ class ComponentFactory(object):
             'aggregator': AggregatorFactory(self),
         }
 
-    def get(self, factory, key):
+    def get_config(self, factory):
+        if factory in self.config:
+            return self.config.get(factory)
+        else:
+            raise ConfigurationError("Config for '%s' not found" % factory)
+
+    def get_factory(self, factory, key):
         if factory in self.factories:
             return self.factories.get(factory).get(key)
         else:

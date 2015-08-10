@@ -134,19 +134,20 @@ class BFGFactory(AbstractFactory):
     def get(self, key):
         if key in self.factory_config:
             bfg_config = self.factory_config.get(key)
-            ammo = self.component_factory.get(
+            ammo = self.component_factory.get_factory(
                 'ammo', bfg_config.get('ammo'))
-            schedule = self.component_factory.get(
+            schedule = self.component_factory.get_factory(
                 'schedule', bfg_config.get('schedule'))
             lp = (
                 (ts, missile, marker)
                 for ts, (missile, marker) in zip(schedule, ammo))
             return BFG(
-                gun=self.component_factory.get(
+                gun=self.component_factory.get_factory(
                     'gun', bfg_config.get('gun')),
                 load_plan=lp,
-                results=self.component_factory.get(
-                    'aggregator', bfg_config.get('aggregator')).results_queue,
+                results=self.component_factory.get_factory(
+                    'aggregator',
+                    bfg_config.get('aggregator')).results_queue,
             )
         else:
             raise ConfigurationError(

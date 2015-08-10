@@ -47,12 +47,19 @@ def main():
 
 @asyncio.coroutine
 def main_coro(event_loop):
+    LOG.info("Configuring component factory")
     cf = ComponentFactory("tmp/load.toml", event_loop)
-    worker = cf.get('bfg', 'mobile')
-    worker.start()
-    while worker.running():
+    LOG.info("Creating workers")
+    workers = [
+        cf.get_factory('bfg', bfg_name)
+        for bfg_name in cf.get_config('bfg')]
+    LOG.info("Starting workers")
+    [worker.start() for worker in workers]
+    LOG.info("Waiting for workers")
+    while any(worker.running() for worker in workers):
         yield from asyncio.sleep(1)
-    rs = cf.get('aggregator', 'lunapark')
+    LOG.info("All workers finished")
+    rs = cf.get_factory('aggregator', 'lunapark')
     rs.stop()
     aggr = {
         ts: {
