@@ -20,17 +20,19 @@ class BFG(object):
     threads in each of them and feeds them with tasks
     """
     def __init__(
-            self, gun, load_plan, results):
-        #self.config = config
+            self, gun, load_plan, results, name, instances):
         self.results = results
-        self.instances = 10
+        self.name = name
+        self.instances = instances
         self.gun = gun
         self.load_plan = load_plan
         LOG.info(
             """
+Name: {name}
 Instances: {instances}
 Gun: {gun.__class__.__name__}
 """.format(
+            name=self.name,
             instances=self.instances,
             gun=gun,
         ))
@@ -38,7 +40,8 @@ Gun: {gun.__class__.__name__}
         self.quit = mp.Event()
         self.task_queue = mp.Queue(1024)
         self.pool = [
-            mp.Process(target=self._worker) for _ in range(0, self.instances)]
+            mp.Process(target=self._worker, name="%s-%s" % (self.name, i))
+            for i in range(0, self.instances)]
         self.feeder = th.Thread(target=self._feed, name="Feeder")
         self.workers_finished = False
 
@@ -68,7 +71,9 @@ Gun: {gun.__class__.__name__}
         """
         for task in self.load_plan:
             if self.quit.is_set():
-                LOG.info("Stop feeding: gonna quit")
+                LOG.info(
+                    "%s observed quit flag and not going to feed anymore",
+                    self.name)
                 return
             # try putting a task to a queue unless there is a quit flag
             # or all workers have exited
@@ -83,20 +88,20 @@ Gun: {gun.__class__.__name__}
                         continue
         workers_count = self.instances
         LOG.info(
-            "Feeded all data. Publishing %d killer tasks" % (
-                workers_count))
+            "%s have feeded all data. Publishing %d poison pills",
+            self.name, workers_count)
         [self.task_queue.put(None, timeout=1) for _ in range(
             0, workers_count)]
 
         try:
-            LOG.info("Waiting for workers")
+            LOG.info("%s is waiting for workers", self.name)
             list([x.join() for x in self.pool])
-            LOG.info("All workers exited.")
+            LOG.info("All workers of %s have exited", self.name)
             self.workers_finished = True
         except (KeyboardInterrupt, SystemExit):
             self.task_queue.close()
             self.quit.set()
-            LOG.info("Going to quit. Waiting for workers")
+            LOG.info("%s have set quit flag. Waiting for workers", self.name)
             list([x.join() for x in self.pool])
             self.workers_finished = True
 
@@ -105,13 +110,14 @@ Gun: {gun.__class__.__name__}
         A worker that runs in a distinct process and manages pool
         of thread workers that do actual jobs
         """
-        LOG.info("Started shooter process...")
+        LOG.info("Started shooter process: %s", mp.current_process().name)
         while not self.quit.is_set():
             try:
                 task = self.task_queue.get(timeout=1)
                 if not task:
                     LOG.info(
-                        "Shooter process got killer task. Exiting")
+                        "Got poison pill. Exiting %s",
+                        mp.current_process().name)
                     return
                 timestamp, missile, marker = task
                 planned_time = self.start_time + (timestamp / 1000.0)
@@ -124,7 +130,8 @@ Gun: {gun.__class__.__name__}
             except Empty:
                 if self.quit.is_set():
                     LOG.debug(
-                        "Empty queue. Exiting")
+                        "Empty queue and quit flag. Exiting %s",
+                        mp.current_process().name)
                     return
 
 
@@ -142,9 +149,11 @@ class BFGFactory(AbstractFactory):
                 (ts, missile, marker)
                 for ts, (missile, marker) in zip(schedule, ammo))
             return BFG(
+                name=key,
                 gun=self.component_factory.get_factory(
                     'gun', bfg_config.get('gun')),
                 load_plan=lp,
+                instances=bfg_config.get('instances'),
                 results=self.component_factory.get_factory(
                     'aggregator',
                     bfg_config.get('aggregator')).results_queue,
