@@ -2,6 +2,10 @@ import threading as th
 import queue
 import multiprocessing as mp
 from .module_exceptions import ConfigurationError
+import logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 class ResultsSink(object):
@@ -16,12 +20,14 @@ class ResultsSink(object):
         self._stopped.set()
 
     def _reader(self):
+        LOG.info("Results reader started")
         while not self._stopped.is_set():
             try:
                 ts, sample = self.results_queue.get(timeout=1)
                 self.results.setdefault(ts, []).append(sample)
             except queue.Empty:
                 if self._stopped.is_set():
+                    LOG.info("Stopping results reader")
                     return
 
 

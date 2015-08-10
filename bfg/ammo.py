@@ -9,6 +9,9 @@ from .module_exceptions import AmmoFileError, ConfigurationError
 import logging
 
 
+LOG = logging.getLogger(__name__)
+
+
 class LineReader(object):
 
     '''One line -- one missile'''
@@ -17,10 +20,12 @@ class LineReader(object):
         self.filename = filename
 
     def __iter__(self):
+        LOG.info("LineReader. Using '%s' as ammo source", self.filename)
         with get_opener(self.filename)(self.filename, 'r') as ammo_file:
             while True:
                 for line in ammo_file:
                     yield (line.rstrip('\r\n'), None)
+                LOG.debug("EOF. Restarting from the beginning")
                 ammo_file.seek(0)
 
 
