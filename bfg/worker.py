@@ -5,6 +5,7 @@ import threading as th
 from queue import Empty, Full
 from .util import AbstractFactory
 from .module_exceptions import ConfigurationError
+import asyncio
 
 
 LOG = logging.getLogger(__name__)
@@ -20,12 +21,13 @@ class BFG(object):
     threads in each of them and feeds them with tasks
     """
     def __init__(
-            self, gun, load_plan, results, name, instances):
+            self, gun, load_plan, results, name, instances, event_loop):
         self.results = results
         self.name = name
         self.instances = instances
         self.gun = gun
         self.load_plan = load_plan
+        self.event_loop = event_loop
         LOG.info(
             """
 Name: {name}
@@ -42,7 +44,6 @@ Gun: {gun.__class__.__name__}
         self.pool = [
             mp.Process(target=self._worker, name="%s-%s" % (self.name, i))
             for i in range(0, self.instances)]
-        self.feeder = th.Thread(target=self._feed, name="Feeder")
         self.workers_finished = False
 
     def start(self):
@@ -50,14 +51,34 @@ Gun: {gun.__class__.__name__}
         for process in self.pool:
             process.daemon = True
             process.start()
-        self.feeder.start()
+        self.event_loop.create_task(self._feeder())
+        #self.event_loop.create_task(self._wait())
+
+    @asyncio.coroutine
+    def _wait(self):
+        try:
+            LOG.info("%s is waiting for workers", self.name)
+            while mp.active_children():
+                LOG.debug("Active children: %d", len(mp.active_children()))
+                yield from asyncio.sleep(1)
+            LOG.info("All workers of %s have exited", self.name)
+            self.workers_finished = True
+        except (KeyboardInterrupt, SystemExit):
+            self.task_queue.close()
+            self.quit.set()
+            while mp.active_children():
+                LOG.debug("Active children: %d", len(mp.active_children()))
+                yield from asyncio.sleep(1)
+            LOG.info("All workers of %s have exited", self.name)
+            self.workers_finished = True
 
     def running(self):
         """
         True while there are alive workers out there. Tank
         will quit when this would become False
         """
-        return not self.workers_finished
+        #return not self.workers_finished
+        return len(mp.active_children())
 
     def stop(self):
         """
@@ -65,7 +86,8 @@ Gun: {gun.__class__.__name__}
         """
         self.quit.set()
 
-    def _feed(self):
+    @asyncio.coroutine
+    def _feeder(self):
         """
         A feeder that runs in distinct thread in main process.
         """
@@ -79,32 +101,28 @@ Gun: {gun.__class__.__name__}
             # or all workers have exited
             while True:
                 try:
-                    self.task_queue.put(
-                        (timestamp, missile, marker, self.name), timeout=1)
+                    self.task_queue.put_nowait(
+                        (timestamp, missile, marker, self.name))
                     break
                 except Full:
                     if self.quit.is_set() or self.workers_finished:
                         return
                     else:
-                        continue
+                        yield from asyncio.sleep(1)
         workers_count = self.instances
         LOG.info(
             "%s have feeded all data. Publishing %d poison pills",
             self.name, workers_count)
-        [self.task_queue.put(None, timeout=1) for _ in range(
-            0, workers_count)]
-
-        try:
-            LOG.info("%s is waiting for workers", self.name)
-            list([x.join() for x in self.pool])
-            LOG.info("All workers of %s have exited", self.name)
-            self.workers_finished = True
-        except (KeyboardInterrupt, SystemExit):
-            self.task_queue.close()
-            self.quit.set()
-            LOG.info("%s have set quit flag. Waiting for workers", self.name)
-            list([x.join() for x in self.pool])
-            self.workers_finished = True
+        while True:
+            try:
+                [self.task_queue.put_nowait(None) for _ in range(
+                    0, workers_count)]
+                break
+            except Full:
+                LOG.warning(
+                    "%s could not publish killer tasks."
+                    "task queue is full. Retry in 1s", self.name)
+                yield from asyncio.sleep(1)
 
     def _worker(self):
         """
@@ -161,6 +179,7 @@ class BFGFactory(AbstractFactory):
                 results=self.component_factory.get_factory(
                     'aggregator',
                     bfg_config.get('aggregator')).results_queue,
+                event_loop=self.event_loop,
             )
         else:
             raise ConfigurationError(

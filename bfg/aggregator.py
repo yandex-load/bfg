@@ -4,6 +4,7 @@ import multiprocessing as mp
 from .module_exceptions import ConfigurationError
 from .util import AbstractFactory
 import asyncio
+import time
 import logging
 
 
@@ -15,25 +16,30 @@ class ResultsSink(object):
         self.event_loop = event_loop
         self.results = {}
         self.results_queue = mp.Queue()
-        self._stopped = th.Event()
+        self._stop = False
+        self.stopped = False
         self.event_loop.create_task(self._reader())
 
     def stop(self):
-        self._stopped.set()
+        self._stop = True
+        asyncio.wait(self._wait())
+
+    @asyncio.coroutine
+    def _wait(self):
+        while not self.stopped:
+            yield from asyncio.sleep(1)
 
     @asyncio.coroutine
     def _reader(self):
         LOG.info("Results reader started")
-        while not self._stopped.is_set():
+        while not self._stop:
             try:
                 sample = self.results_queue.get_nowait()
                 self.results.setdefault(sample.ts, []).append(sample)
             except queue.Empty:
-                if self._stopped.is_set():
-                    LOG.info("Stopping results reader")
-                    return
-                else:
-                    yield from asyncio.sleep(1)
+                yield from asyncio.sleep(1)
+        LOG.info("Results reader stopped")
+        self.stopped = True
 
 
 class AggregatorFactory(AbstractFactory):
