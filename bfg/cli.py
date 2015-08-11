@@ -60,7 +60,7 @@ def main_coro(event_loop):
         yield from asyncio.sleep(1)
     LOG.info("All workers finished")
     rs = cf.get_factory('aggregator', 'lunapark')
-    rs.stop()
+    yield from rs.stop()
     aggr = {
         ts: {
             "rps": len(samples),

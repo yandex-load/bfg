@@ -20,12 +20,9 @@ class ResultsSink(object):
         self.stopped = False
         self.event_loop.create_task(self._reader())
 
+    @asyncio.coroutine
     def stop(self):
         self._stop = True
-        asyncio.wait(self._wait())
-
-    @asyncio.coroutine
-    def _wait(self):
         while not self.stopped:
             yield from asyncio.sleep(1)
 
