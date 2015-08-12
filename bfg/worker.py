@@ -1,14 +1,18 @@
-import logging
 import time
 import multiprocessing as mp
 import threading as th
 from queue import Empty, Full
 from .util import AbstractFactory
 from .module_exceptions import ConfigurationError
+from collections import namedtuple
 import asyncio
-
+import logging
 
 LOG = logging.getLogger(__name__)
+
+
+Task = namedtuple(
+    'Task', 'ts,bfg,scenario,marker,data')
 
 
 def signal_handler(signum, frame):
@@ -91,7 +95,8 @@ Gun: {gun.__class__.__name__}
         """
         A feeder that runs in distinct thread in main process.
         """
-        for timestamp, missile, marker in self.load_plan:
+        for task in self.load_plan:
+            task = task._replace(bfg=self.name)
             if self.quit.is_set():
                 LOG.info(
                     "%s observed quit flag and not going to feed anymore",
@@ -101,8 +106,7 @@ Gun: {gun.__class__.__name__}
             # or all workers have exited
             while True:
                 try:
-                    self.task_queue.put_nowait(
-                        (timestamp, missile, marker, self.name))
+                    self.task_queue.put_nowait(task)
                     break
                 except Full:
                     if self.quit.is_set() or self.workers_finished:
@@ -138,15 +142,11 @@ Gun: {gun.__class__.__name__}
                         "Got poison pill. Exiting %s",
                         mp.current_process().name)
                     return
-                timestamp, missile, marker, scenario = task
-                planned_time = self.start_time + (timestamp / 1000.0)
-                delay = planned_time - time.time()
+                task = task._replace(ts=self.start_time + (task.ts / 1000.0))
+                delay = task.ts - time.time()
                 if delay > 0:
                     time.sleep(delay)
-                self.gun.shoot(
-                    planned_time,
-                    missile, scenario,
-                    marker, self.results)
+                self.gun.shoot(task, self.results)
             except (KeyboardInterrupt, SystemExit):
                 return
             except Empty:
@@ -160,18 +160,18 @@ Gun: {gun.__class__.__name__}
 class BFGFactory(AbstractFactory):
     FACTORY_NAME = 'bfg'
 
-    def get(self, key):
-        if key in self.factory_config:
-            bfg_config = self.factory_config.get(key)
+    def get(self, bfg_name):
+        if bfg_name in self.factory_config:
+            bfg_config = self.factory_config.get(bfg_name)
             ammo = self.component_factory.get_factory(
                 'ammo', bfg_config.get('ammo'))
             schedule = self.component_factory.get_factory(
                 'schedule', bfg_config.get('schedule'))
             lp = (
-                (ts, missile, marker)
-                for ts, (missile, marker) in zip(schedule, ammo))
+                Task(ts, bfg_name, None, None, data)
+                for ts, data in zip(schedule, ammo))
             return BFG(
-                name=key,
+                name=bfg_name,
                 gun=self.component_factory.get_factory(
                     'gun', bfg_config.get('gun')),
                 load_plan=lp,
@@ -183,4 +183,4 @@ class BFGFactory(AbstractFactory):
             )
         else:
             raise ConfigurationError(
-                "Configuration for '%s' BFG not found" % key)
+                "Configuration for '%s' BFG not found" % bfg_name)

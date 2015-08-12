@@ -230,9 +230,7 @@ def create(rps_schedule):
                        for step_config in rps_schedule])
     else:
         lp = StepFactory.produce(rps_schedule[0])
-    # info.status.publish('duration', lp.get_duration() / 1000)
-    # info.status.publish('steps', lp.get_rps_list())
-    # info.status.lp_len = len(lp)
+    LOG.info('Planned duration: %.2d sec', lp.get_duration() / 1000)
     return lp
 
 

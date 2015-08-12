@@ -18,7 +18,7 @@ class LineReader(object):
         with get_opener(self.filename)(self.filename, 'r') as ammo_file:
             while True:
                 for line in ammo_file:
-                    yield (line.rstrip('\r\n'), None)
+                    yield line.rstrip('\r\n')
                 LOG.debug("EOF. Restarting from the beginning")
                 ammo_file.seek(0)
 
