@@ -3,7 +3,7 @@ import time
 from collections import namedtuple
 
 Sample = namedtuple(
-    'Sample', 'ts,bfg,marker,overall,error,code,delay,ext')
+    'Sample', 'ts,bfg,marker,overall,error,code,delay,scenario,action,ext')
 
 
 class StopWatch(object):
@@ -13,6 +13,8 @@ class StopWatch(object):
         self.end_time = self.start_time
         self.error = False
         self.code = None
+        self.scenario = None
+        self.action = None
         self.ext = {}
         self.stopped = False
 
@@ -43,6 +45,8 @@ class StopWatch(object):
             self.error,
             self.code,
             self.start_time - self.task.ts,
+            self.scenario,
+            self.action,
             self.ext,
         )
 

@@ -41,7 +41,8 @@ class AmmoFactory(AbstractFactory):
 
     def get(self, key):
         if key in self.factory_config:
-            return LineReader(self.factory_config.get(key).get("file"))
+            return Group(
+                LineReader(self.factory_config.get(key).get("file")), 10)
         else:
             raise ConfigurationError(
                 "Configuration for %s ammo not found" % key)
