@@ -61,13 +61,7 @@ def main_coro(event_loop):
     LOG.info("All workers finished")
     rs = cf.get_factory('aggregator', 'lunapark')
     yield from rs.stop()
-    aggr = {
-        ts: {
-            "rps": len(samples),
-            "avg_rt": np.average(list(s.overall for s in samples)),
-            "avg_delay": np.average(list(s.delay for s in samples)),
-        } for ts, samples in rs.results.items()
-    }
+    aggr = rs.aggregated_results
     for ts in sorted(aggr.keys()):
         second_data = aggr.get(ts)
         print("%s: %s rps, %02dms avg %02dms avg delay" % (
