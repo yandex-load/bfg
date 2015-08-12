@@ -6,6 +6,8 @@ from .util import AbstractFactory
 import asyncio
 import time
 import numpy as np
+from pymongo import MongoClient
+from bson import ObjectId
 import logging
 
 
@@ -41,7 +43,7 @@ class ResultsSink(object):
 
 
 class CachingAggregator(object):
-    def __init__(self, event_loop):
+    def __init__(self, event_loop, listeners=[]):
         self.cache_depth = 5
         self.event_loop = event_loop
         self.results = {}
@@ -50,6 +52,7 @@ class CachingAggregator(object):
         self._stop = False
         self.reader_stopped = False
         self.aggregator_stopped = False
+        self.listeners = listeners
         self.event_loop.create_task(self._reader())
         self.event_loop.create_task(self._aggregator())
 
@@ -98,13 +101,30 @@ class CachingAggregator(object):
         }
         LOG.info("Aggregated data for %s:\n%s", ts, aggr)
         self.aggregated_results[ts] = aggr
+        [l.publish(ts, aggr) for l in self.listeners]
+
+
+class MongoUplink(object):
+    def __init__(self, address='mongodb://localhost:27017/'):
+        self.client = MongoClient(address)
+        self.collection = self.client.bfg.test_results
+        self.oid = ObjectId()
+
+    def publish(self, ts, sample):
+        self.collection.update_one(
+            {"_id": self.oid},
+            {"$set": {"samples.%s" % ts: sample}},
+            True)
+
 
 class AggregatorFactory(AbstractFactory):
     FACTORY_NAME = "aggregator"
 
     def __init__(self, component_factory):
         super().__init__(component_factory)
-        self.results = CachingAggregator(self.event_loop)
+        self.results = CachingAggregator(
+            self.event_loop,
+            listeners=[MongoUplink()])
 
     def get(self, key):
         if key in self.factory_config:
