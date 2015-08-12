@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 
 
 Task = namedtuple(
-    'Task', 'ts,bfg,scenario,marker,data')
+    'Task', 'ts,bfg,marker,data')
 
 
 def signal_handler(signum, frame):
@@ -168,8 +168,8 @@ class BFGFactory(AbstractFactory):
             schedule = self.component_factory.get_factory(
                 'schedule', bfg_config.get('schedule'))
             lp = (
-                Task(ts, bfg_name, None, None, data)
-                for ts, data in zip(schedule, ammo))
+                Task(ts, bfg_name, marker, data)
+                for ts, (marker, data) in zip(schedule, ammo))
             return BFG(
                 name=bfg_name,
                 gun=self.component_factory.get_factory(

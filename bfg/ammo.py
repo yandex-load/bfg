@@ -1,5 +1,6 @@
 from .util import get_opener, AbstractFactory
 from .module_exceptions import ConfigurationError
+from .worker import Task
 import logging
 
 
@@ -18,7 +19,7 @@ class LineReader(object):
         with get_opener(self.filename)(self.filename, 'r') as ammo_file:
             while True:
                 for line in ammo_file:
-                    yield line.rstrip('\r\n')
+                    yield (None, line.rstrip('\r\n'))
                 LOG.debug("EOF. Restarting from the beginning")
                 ammo_file.seek(0)
 
@@ -30,7 +31,9 @@ class Group(object):
 
     def __iter__(self):
         while True:
-            yield (next(self.iterable) for _ in range(self.group_size))
+            yield (
+                "multi-%s" % self.group_size,
+                [next(self.iterable) for _ in range(self.group_size)])
 
 
 class AmmoFactory(AbstractFactory):
