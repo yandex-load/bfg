@@ -35,8 +35,7 @@ class StopWatch(object):
         self.code = code
 
     def as_sample(self):
-        overall = int(
-            (self.end_time - self.start_time) * 1000)
+        overall = (self.end_time - self.start_time) * 1000
         return Sample(
             int(self.start_time),
             self.task.bfg,
@@ -44,7 +43,7 @@ class StopWatch(object):
             overall,
             self.error,
             self.code,
-            self.start_time - self.task.ts,
+            (self.start_time - self.task.ts) * 1000,
             self.scenario,
             self.action,
             self.ext,

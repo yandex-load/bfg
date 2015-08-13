@@ -3,9 +3,11 @@ import queue
 import multiprocessing as mp
 from .module_exceptions import ConfigurationError
 from .util import AbstractFactory
+from .guns.measure import Sample
 import asyncio
 import time
 import numpy as np
+import pandas as pd
 from pymongo import MongoClient
 from bson import ObjectId
 import logging
@@ -43,7 +45,9 @@ class ResultsSink(object):
 
 
 class CachingAggregator(object):
-    def __init__(self, event_loop, listeners=[]):
+    def __init__(self, event_loop, listeners=[], raw_filename='result.samples'):
+        self.raw_file = open(raw_filename, 'w')
+        self.first_write = True
         self.cache_depth = 5
         self.event_loop = event_loop
         self.results = {}
@@ -79,29 +83,39 @@ class CachingAggregator(object):
 
     @asyncio.coroutine
     def _aggregator(self):
+        start_time = time.time()
         while not (self.reader_stopped and len(self.results) == 0):
-            yield from asyncio.sleep(1)
+            delay = start_time + 1 - time.time()
+            if delay > 0:
+                yield from asyncio.sleep(delay)
+            start_time = time.time()
             for _ in range(len(self.results) - self.cache_depth):
                 smallest_key = min(self.results.keys())
-                self.aggregate(
+                ts, aggr = self.aggregate(
                     smallest_key, self.results.pop(smallest_key))
+                self.publish(ts, aggr)
         LOG.info("Results aggregator stopped")
         self.aggregator_stopped = True
+
+    def publish(self, ts, aggr):
+        LOG.info("Publishing aggregated data for %s:\n%s", ts, aggr)
+        self.aggregated_results[ts] = aggr
+        [l.publish(ts, aggr) for l in self.listeners]
 
     def aggregate(self, ts, samples):
         if ts in self.aggregated_results:
             LOG.warning(
                 "%s already aggregated. Some data points lost."
                 "Try increasing aggregator cache")
-
+        df = pd.DataFrame(samples, columns=Sample._fields)
+        df.to_csv(self.raw_file, sep='\t', index=False, header=self.first_write)
+        self.first_write = False  # write headers only in the beginning
         aggr = {
             "rps": len(samples),
             "avg_rt": np.average(list(s.overall for s in samples)),
             "avg_delay": np.average(list(s.delay for s in samples)),
         }
-        LOG.info("Aggregated data for %s:\n%s", ts, aggr)
-        self.aggregated_results[ts] = aggr
-        [l.publish(ts, aggr) for l in self.listeners]
+        return ts, aggr
 
 
 class MongoUplink(object):
