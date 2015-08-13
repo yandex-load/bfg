@@ -4,6 +4,7 @@ import multiprocessing as mp
 from .module_exceptions import ConfigurationError
 from .util import AbstractFactory
 from .guns.measure import Sample
+from .util import q_to_dict
 import asyncio
 import time
 import numpy as np
@@ -85,7 +86,9 @@ class CachingAggregator(object):
     def _aggregator(self):
         start_time = time.time()
         while not (self.reader_stopped and len(self.results) == 0):
-            delay = start_time + 1 - time.time()
+            work_time = time.time() - start_time
+            LOG.info("Last aggregation took %02d µs", work_time * 1000000)
+            delay = 1 - work_time
             if delay > 0:
                 yield from asyncio.sleep(delay)
             start_time = time.time()
@@ -102,6 +105,21 @@ class CachingAggregator(object):
         self.aggregated_results[ts] = aggr
         [l.publish(ts, aggr) for l in self.listeners]
 
+    def _stat_for_df(self, df):
+        return {
+            "samples": len(df),
+            "delay": {
+                "avg": df.delay.mean(),
+                "quantiles": q_to_dict(df.delay.quantile(
+                    [0, .25, .5, .75, .9, .99, 1])),
+            },
+            "rt": {
+                "avg": df.rt.mean(),
+                "quantiles": q_to_dict(df.rt.quantile(
+                    [0, .25, .5, .75, .9, .99, 1])),
+            }
+        }
+
     def aggregate(self, ts, samples):
         if ts in self.aggregated_results:
             LOG.warning(
@@ -110,10 +128,10 @@ class CachingAggregator(object):
         df = pd.DataFrame(samples, columns=Sample._fields)
         df.to_csv(self.raw_file, sep='\t', index=False, header=self.first_write)
         self.first_write = False  # write headers only in the beginning
+
         aggr = {
-            "rps": len(samples),
-            "avg_rt": np.average(list(s.overall for s in samples)),
-            "avg_delay": np.average(list(s.delay for s in samples)),
+            "rps": len(df),
+            "overall": self._stat_for_df(df[df.action == "overall"]),
         }
         return ts, aggr
 

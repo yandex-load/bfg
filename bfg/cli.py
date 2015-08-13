@@ -28,7 +28,7 @@ def init_logging(debug=False):
     warn_handler.setLevel(logging.WARN)
     warn_handler.setFormatter(dbg_formatter)
 
-    logger = logging.getLogger("hyper")  # configure root logger
+    logger = logging.getLogger("hyper")
     logger.setLevel(logging.WARNING)
 
     logger = logging.getLogger("")  # configure root logger
@@ -61,12 +61,6 @@ def main_coro(event_loop):
     LOG.info("All workers finished")
     rs = cf.get_factory('aggregator', 'lunapark')
     yield from rs.stop()
-    aggr = rs.aggregated_results
-    for ts in sorted(aggr.keys()):
-        second_data = aggr.get(ts)
-        print("%s: %s rps, %02dms avg %02dms avg delay" % (
-            ts, second_data.get("rps"),
-            second_data.get("avg_rt"), second_data.get("avg_delay")))
 
 
 if __name__ == '__main__':

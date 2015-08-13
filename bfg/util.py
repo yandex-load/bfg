@@ -83,6 +83,22 @@ def get_opener(f_path):
         return open
 
 
+def df_to_dict(df):
+    if isinstance(df, float):
+        return df
+    return {
+        str(k).replace('.', '_'): v
+        for k, v in df.to_dict().items()}
+
+
+def q_to_dict(df):
+    if isinstance(df, float):
+        return df
+    return {
+        str(int(k * 100)): v
+        for k, v in df.to_dict().items()}
+
+
 class AbstractFactory(object):
     FACTORY_NAME = ""
 

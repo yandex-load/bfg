@@ -3,7 +3,7 @@ import time
 from collections import namedtuple
 
 Sample = namedtuple(
-    'Sample', 'ts,bfg,marker,overall,error,code,delay,scenario,action,ext')
+    'Sample', 'ts,bfg,marker,rt,error,code,delay,scenario,action,ext')
 
 
 class StopWatch(object):
