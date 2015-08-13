@@ -1,6 +1,6 @@
+''' Ammo producers '''
 from .util import get_opener, AbstractFactory
 from .module_exceptions import ConfigurationError
-from .worker import Task
 import logging
 
 
@@ -25,6 +25,9 @@ class LineReader(object):
 
 
 class Group(object):
+
+    ''' Group missiles into batches '''
+
     def __init__(self, iterable, group_size):
         self.group_size = group_size
         self.iterable = iter(iterable)
@@ -40,6 +43,9 @@ class AmmoFactory(AbstractFactory):
     FACTORY_NAME = 'ammo'
 
     def get(self, key):
+        '''
+        Return a _new_ reader every time
+        '''
         if key in self.factory_config:
             return Group(
                 LineReader(self.factory_config.get(key).get("file")), 10)

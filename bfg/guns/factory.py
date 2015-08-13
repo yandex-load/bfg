@@ -1,3 +1,7 @@
+'''
+Gun factory. Returns a gun of requested type
+'''
+#TODO: actually it doesn't for now
 from .http2 import HttpMultiGun
 from ..util import AbstractFactory
 from ..module_exceptions import ConfigurationError

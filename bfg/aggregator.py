@@ -1,3 +1,7 @@
+'''
+Data aggregation facilities.
+'''
+
 import threading as th
 import queue
 import multiprocessing as mp
@@ -18,6 +22,8 @@ LOG = logging.getLogger(__name__)
 
 
 class ResultsSink(object):
+    ''' Just collects samples, does not aggregate '''
+
     def __init__(self, event_loop):
         self.event_loop = event_loop
         self.results = {}
@@ -28,12 +34,19 @@ class ResultsSink(object):
 
     @asyncio.coroutine
     def stop(self):
+        '''
+        Signal the reading coroutine to stop and wait for it
+        '''
         self._stop = True
         while not self.stopped:
             yield from asyncio.sleep(1)
 
     @asyncio.coroutine
     def _reader(self):
+        '''
+        Read from results queue asyncronously and put samples into
+        results dict
+        '''
         LOG.info("Results reader started")
         while not self._stop:
             try:
@@ -46,10 +59,19 @@ class ResultsSink(object):
 
 
 class CachingAggregator(object):
-    def __init__(self, event_loop, listeners=[], raw_filename='result.samples'):
+    '''
+    Caching aggregator that can also notify its listeners
+    and write raw samples to a file. Listeners should have
+    a publish(timestamp, aggregated_data) method
+    '''
+
+    def __init__(
+            self, event_loop,
+            cache_depth=5, listeners=[],
+            raw_filename='result.samples'):
         self.raw_file = open(raw_filename, 'w')
         self.first_write = True
-        self.cache_depth = 5
+        self.cache_depth = cache_depth
         self.event_loop = event_loop
         self.results = {}
         self.aggregated_results = {}
@@ -63,6 +85,12 @@ class CachingAggregator(object):
 
     @asyncio.coroutine
     def stop(self):
+        '''
+        Set cache-depth to 0 in order to aggregate all the results in buffer.
+        Aggregator will exit automatically when it observe that reader is
+        stopped and the buffer is empty (so nothing will probably appear
+        in the buffer)
+        '''
         self.cache_depth = 0  # empty the cache
         self._stop = True
         while not self.reader_stopped:
@@ -72,18 +100,29 @@ class CachingAggregator(object):
 
     @asyncio.coroutine
     def _reader(self):
+        '''
+        Read everything from the queue until it empty, then sleep
+        for half a second
+        '''
         LOG.info("Results reader started")
         while not self._stop:
             try:
                 sample = self.results_queue.get_nowait()
                 self.results.setdefault(sample.ts, []).append(sample)
             except queue.Empty:
-                yield from asyncio.sleep(1)
+                yield from asyncio.sleep(0.5)
         LOG.info("Results reader stopped")
         self.reader_stopped = True
 
     @asyncio.coroutine
     def _aggregator(self):
+        '''
+        Sleep before next aggregation is needed (aggregations performed
+        once each second), grab the oldest data from the buffer maintaning
+        its size, aggregate it and send results to listeners by calling publish
+
+        The aggregate() function will also write raw samples to a file
+        '''
         start_time = time.time()
         while not (self.reader_stopped and len(self.results) == 0):
             work_time = time.time() - start_time
@@ -96,16 +135,23 @@ class CachingAggregator(object):
                 smallest_key = min(self.results.keys())
                 ts, aggr = self.aggregate(
                     smallest_key, self.results.pop(smallest_key))
-                self.publish(ts, aggr)
+                if aggr:
+                    self.publish(ts, aggr)
         LOG.info("Results aggregator stopped")
         self.aggregator_stopped = True
 
     def publish(self, ts, aggr):
+        '''
+        Send aggregated data to the listeners
+        '''
         LOG.info("Publishing aggregated data for %s:\n%s", ts, aggr)
         self.aggregated_results[ts] = aggr
         [l.publish(ts, aggr) for l in self.listeners]
 
     def _stat_for_df(self, df):
+        '''
+        Collect stat for a dataframe
+        '''
         return {
             "samples": len(df),
             "delay": {
@@ -121,10 +167,15 @@ class CachingAggregator(object):
         }
 
     def aggregate(self, ts, samples):
+        '''
+        Convert samples to dataframe, save raw samples to a file,
+        compute some statistics and return aggregated data
+        '''
         if ts in self.aggregated_results:
             LOG.warning(
                 "%s already aggregated. Some data points lost."
-                "Try increasing aggregator cache")
+                "Try increasing aggregator cachesize")
+            return ts, None
         df = pd.DataFrame(samples, columns=Sample._fields)
         df.to_csv(self.raw_file, sep='\t', index=False, header=self.first_write)
         self.first_write = False  # write headers only in the beginning
@@ -137,6 +188,8 @@ class CachingAggregator(object):
 
 
 class MongoUplink(object):
+    ''' An uplink to MongoDB. Acts as a listener for aggregator '''
+
     def __init__(self, address='mongodb://localhost:27017/'):
         self.client = MongoClient(address)
         self.collection = self.client.bfg.test_results
@@ -150,6 +203,8 @@ class MongoUplink(object):
 
 
 class AggregatorFactory(AbstractFactory):
+    ''' Factory that produces aggregators '''
+
     FACTORY_NAME = "aggregator"
 
     def __init__(self, component_factory):

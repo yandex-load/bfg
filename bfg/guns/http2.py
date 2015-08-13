@@ -1,3 +1,6 @@
+'''
+Guns for HTTP/2
+'''
 import logging
 from hyper import HTTP20Connection
 from hyper.http20.exceptions import ConnectionError
@@ -8,6 +11,9 @@ LOG = logging.getLogger(__name__)
 
 
 class HttpGun(object):
+    '''
+    Single request gun. Only GET. Expects single request in task.data
+    '''
     SECTION = 'http_gun'
 
     def __init__(self, base_address):
@@ -26,6 +32,13 @@ class HttpGun(object):
 
 
 class HttpMultiGun(object):
+    '''
+    Multi request gun. Only GET. Expects an array of (marker, request)
+    tuples in task.data. A stream is opened for every request first and
+    responses are readed after all streams have been opened. A sample is
+    measured for every action and for overall time for a whole batch.
+    The sample for overall time is marked with 'overall' in action field.
+    '''
     SECTION = 'http_gun'
 
     def __init__(self, base_address):

@@ -2,7 +2,6 @@
 Utilities: parsers, converters, etc.
 '''
 import re
-import logging
 from itertools import islice
 from .module_exceptions import ConfigurationError
 import math
@@ -14,8 +13,11 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-def take(number, iter):
-    return list(islice(iter, 0, number))
+def take(number, iterable):
+    '''
+    Get first n elements from an iterable
+    '''
+    return list(islice(iterable, 0, number))
 
 
 def parse_duration(duration):
@@ -67,7 +69,7 @@ def s_to_ms(f_sec):
 
 
 def get_opener(f_path):
-    """ Returns opener function according to file extensions:
+    ''' Returns opener function according to file extensions:
         bouth open and gzip.open calls return fileobj.
 
     Args:
@@ -75,7 +77,7 @@ def get_opener(f_path):
 
     Returns:
         function, to call for file open.
-    """
+    '''
     if f_path.endswith('.gz'):
         logging.info("Using gzip opener")
         return gzip.open
@@ -84,6 +86,10 @@ def get_opener(f_path):
 
 
 def df_to_dict(df):
+    '''
+    Convert DataFrame to dict with string keys
+    in Mongo-compatible format
+    '''
     if isinstance(df, float):
         return df
     return {
@@ -92,6 +98,10 @@ def df_to_dict(df):
 
 
 def q_to_dict(df):
+    '''
+    Convert quantiles DataFrame to dict, convert
+    keys into percents
+    '''
     if isinstance(df, float):
         return df
     return {
@@ -100,6 +110,18 @@ def q_to_dict(df):
 
 
 class AbstractFactory(object):
+    '''
+    Base class for factories.
+    Initializes internal fields:
+
+    component_factory: main component factory
+    config: global config
+    factory_config: our config section
+    event_loop: global event loop
+
+    Inheritance: you should specify FACTORY_NAME and
+    provide an implementation for get() method
+    '''
     FACTORY_NAME = ""
 
     def __init__(self, component_factory):

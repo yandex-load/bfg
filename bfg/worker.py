@@ -20,10 +20,10 @@ def signal_handler(signum, frame):
 
 
 class BFG(object):
-    """
-    A BFG load generator that manages multiple workers as processes and
-    threads in each of them and feeds them with tasks
-    """
+    '''
+    A BFG load generator that manages multiple workers as processes
+    and feeds them with tasks
+    '''
     def __init__(
             self, gun, load_plan, results, name, instances, event_loop):
         self.results = results
@@ -33,11 +33,11 @@ class BFG(object):
         self.load_plan = load_plan
         self.event_loop = event_loop
         LOG.info(
-            """
+            '''
 Name: {name}
 Instances: {instances}
 Gun: {gun.__class__.__name__}
-""".format(
+'''.format(
             name=self.name,
             instances=self.instances,
             gun=gun,
@@ -77,24 +77,24 @@ Gun: {gun.__class__.__name__}
             self.workers_finished = True
 
     def running(self):
-        """
+        '''
         True while there are alive workers out there. Tank
         will quit when this would become False
-        """
+        '''
         #return not self.workers_finished
         return len(mp.active_children())
 
     def stop(self):
-        """
+        '''
         Say the workers to finish their jobs and quit.
-        """
+        '''
         self.quit.set()
 
     @asyncio.coroutine
     def _feeder(self):
-        """
-        A feeder that runs in distinct thread in main process.
-        """
+        '''
+        A feeder coroutine
+        '''
         for task in self.load_plan:
             task = task._replace(bfg=self.name)
             if self.quit.is_set():
@@ -129,10 +129,9 @@ Gun: {gun.__class__.__name__}
                 yield from asyncio.sleep(1)
 
     def _worker(self):
-        """
-        A worker that runs in a distinct process and manages pool
-        of thread workers that do actual jobs
-        """
+        '''
+        A worker that runs in a distinct process
+        '''
         LOG.info("Started shooter process: %s", mp.current_process().name)
         while not self.quit.is_set():
             try:

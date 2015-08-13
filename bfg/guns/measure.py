@@ -1,12 +1,27 @@
+'''
+Measuring context. It also will send the results automatically
+'''
+
 from contextlib import contextmanager
 import time
 from collections import namedtuple
 
+
+'''
+Sample is the data type that guns should produce
+as a result of a measurement
+'''
 Sample = namedtuple(
     'Sample', 'ts,bfg,marker,rt,error,code,delay,scenario,action,ext')
 
 
 class StopWatch(object):
+    '''
+    Sample builder that automatically makes some assumptions
+    For example, start time is the time this object was created
+    Note, that internal times are in seconds and Sample fields
+    are in milliseconds
+    '''
     def __init__(self, task):
         self.task = task
         self.start_time = time.time()
@@ -52,6 +67,10 @@ class StopWatch(object):
 
 @contextmanager
 def measure(task, results):
+    '''
+    Measurement context. Use the stopwatch yielded
+    to provide additional info
+    '''
     sw = StopWatch(task)
     yield sw
     sw.stop()

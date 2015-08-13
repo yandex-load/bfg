@@ -1,3 +1,8 @@
+'''
+Entry point. Init logging, initialize component factory,
+start asyncio event loop, manage components lifecycle
+'''
+
 from .worker import BFG
 from .config import ComponentFactory
 import time
@@ -10,13 +15,14 @@ import sys
 LOG = logging.getLogger(__name__)
 
 
-def init_logging(debug=False):
+def init_logging(debug=False, filename='bfg.log'):
+    ''' Configure logging: verbose or not '''
     default_formatter = logging.Formatter(
         "%(asctime)s [%(levelname)s] %(name)s: %(message)s", "%H:%M:%S")
     dbg_formatter = logging.Formatter(
         "%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
-    dbg_handler = logging.FileHandler('bfg.log')
+    dbg_handler = logging.FileHandler(filename)
     dbg_handler.setLevel(debug)
     dbg_handler.setFormatter(dbg_formatter)
 
@@ -39,6 +45,7 @@ def init_logging(debug=False):
 
 
 def main():
+    ''' Run event loop '''
     init_logging()
     event_loop = asyncio.get_event_loop()
     event_loop.run_until_complete(main_coro(event_loop))
@@ -47,18 +54,27 @@ def main():
 
 @asyncio.coroutine
 def main_coro(event_loop):
+    ''' Main coroutine. Manage components' lifecycle '''
+
+    # Configure factories using config files
     LOG.info("Configuring component factory")
     cf = ComponentFactory("tmp/load.toml", event_loop)
+
+    # Create workers using 'bfg' section from config
     LOG.info("Creating workers")
     workers = [
         cf.get_factory('bfg', bfg_name)
         for bfg_name in cf.get_config('bfg')]
+
+    # Start workers and wait for them asyncronously
     LOG.info("Starting workers")
     [worker.start() for worker in workers]
     LOG.info("Waiting for workers")
     while any(worker.running() for worker in workers):
         yield from asyncio.sleep(1)
     LOG.info("All workers finished")
+
+    # Stop aggregator
     rs = cf.get_factory('aggregator', 'lunapark')
     yield from rs.stop()
 
