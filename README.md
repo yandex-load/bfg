@@ -24,6 +24,7 @@ support virtually any protocol that way).
 
 See architectural scheme in ```docs/architecture.graphml```. It is created with YeD editor, so you’ll probably
 need it to open the file.
+![Architectural cheme](/docs/architecture.png)
 
 ## Requirements and installation
 
