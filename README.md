@@ -1,11 +1,14 @@
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/direvius/bfg?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 # BFG
 
 BFG is a modular tool and framework for load generation.
 
 As a tool, BFG is intended to be a load generation module in an automated load testing environment.
 It will handle creating request to your server(s) using different protocols, maintaining the schedule,
-measuring and aggregating the results and sending them to an uplink. Ammo preparation, config generation,
-data storage, analytics and data representation should be done by other modules of that environment.
+measuring and aggregating the results and sending them to uplinks (Mongo, Graphite, file on disk, etc.)
+Ammo preparation, config generation, data storage, analytics and data representation should be done by
+other modules of that environment.
 
 As a framework, BFG provides means to implement your own load generator that will be used in that environment.
 
