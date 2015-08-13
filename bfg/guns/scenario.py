@@ -16,7 +16,9 @@ class ScenarioGun(object):
     User should use @measure context from measure.py module to collect samples
     '''
 
-    def __init__(self, module_name, module_path=""):
+    def __init__(self, config):
+        module_name = config.get("module_name")
+        module_path = config.get("module_path")
         if module_path:
             sys.path.append(module_path)
         self.module = __import__(module_name)

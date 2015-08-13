@@ -16,10 +16,10 @@ class HttpGun(object):
     '''
     SECTION = 'http_gun'
 
-    def __init__(self, base_address):
-        self.base_address = base_address
-        LOG.info("Initialized http2 gun with target '%s'", base_address)
-        self.conn = HTTP20Connection(base_address, secure=True)
+    def __init__(self, config):
+        self.base_address = config.get('target')
+        LOG.info("Initialized http2 gun with target '%s'", self.base_address)
+        self.conn = HTTP20Connection(self.base_address, secure=True)
 
     def shoot(self, task, results):
         LOG.debug("Task: %s", task)
@@ -41,10 +41,10 @@ class HttpMultiGun(object):
     '''
     SECTION = 'http_gun'
 
-    def __init__(self, base_address):
-        self.base_address = base_address
-        LOG.info("Initialized http2 gun with target '%s'", base_address)
-        self.conn = HTTP20Connection(base_address, secure=True)
+    def __init__(self, config):
+        self.base_address = config.get('target')
+        LOG.info("Initialized http2 gun with target '%s'", self.base_address)
+        self.conn = HTTP20Connection(self.base_address, secure=True)
 
     def shoot(self, task, results):
         LOG.debug("Task: %s", task)
