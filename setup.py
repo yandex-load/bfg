@@ -5,9 +5,9 @@ from setuptools import setup, find_packages
 setup(
     name='bfg',
     version='0.0.1',
-    description='a load generator tool',
+    description='a load generation tool and framework',
     longer_description='''
-BFG is a modular load generator tool.
+BFG is a modular tool and framework for load generation.
 ''',
     maintainer='Alexey Lavrenuke (load testing)',
     maintainer_email='direvius@gmail.com',
@@ -16,6 +16,8 @@ BFG is a modular load generator tool.
     install_requires=[
         'hyper',
         'numpy',
+        'pandas',
+        'PyYAML',
         'pytoml',
     ],
     license='MIT',

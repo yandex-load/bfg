@@ -34,10 +34,10 @@ Sample = namedtuple(
 
 class StopWatch(object):
     '''
-    Sample builder that automatically makes some assumptions
-    For example, start time is the time this object was created
-    Note, that internal times are in seconds and Sample fields
-    are in milliseconds
+    Sample builder that automatically makes some assumptions about field values.
+    For example, start time is set to the time this object was created. Note
+    that StopWatch internal times are in seconds and Sample fields are in
+    milliseconds
     '''
     def __init__(self, task):
         self.task = task
