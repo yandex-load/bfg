@@ -10,6 +10,23 @@ from collections import namedtuple
 '''
 Sample is the data type that guns should produce
 as a result of a measurement
+
+Fields:
+    ts: timestamp, when the request was sent
+    bfg: which bfg is used (in which config section it defined)
+         this field is copied from the Task
+    marker: the marker that was specified for this request in ammo
+            also copied from the Task
+    rt: response (or whatever) time
+    error: True if request was not successful
+    code: set whatever you want. Integer is suggested
+    delay: difference between the time this request is supposed to start
+           and actual time it started. Calculated automatically by StopWatch
+    scenario: scenario name from ammo. The gun should set it if any
+    action: action name. The gun also should set it. It can be 'connect',
+            'wait', or whatever. 'overall' action is reserved as a marker
+            that this sample is for a whole scenario.
+    ext: a dict of extended info. Some put {'error': "My Error Message"} in it
 '''
 Sample = namedtuple(
     'Sample', 'ts,bfg,marker,rt,error,code,delay,scenario,action,ext')
