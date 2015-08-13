@@ -70,6 +70,7 @@ class HttpMultiGun(object):
                         resp = self.conn.get_response(stream)
                     except (ConnectionError, KeyError) as e:
                         sw.stop()
+                        # TODO: try to add a meaningful code here
                         sw.set_error(1)
                         overall_sw.set_error(1)
                         sw.ext["error"] = str(e)
