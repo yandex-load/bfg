@@ -3,13 +3,12 @@ Entry point. Init logging, initialize component factory,
 start asyncio event loop, manage components lifecycle
 '''
 
-from .worker import BFG
-from .config import ComponentFactory
-import time
-import numpy as np
-import asyncio
 import logging
+import yaml
+import pytoml
+import json
 import sys
+from .loadtest import LoadTest
 
 
 LOG = logging.getLogger(__name__)
@@ -45,38 +44,32 @@ def init_logging(debug=False, filename='bfg.log'):
 
 
 def main():
-    ''' Run event loop '''
+    ''' Run test '''
+    config_filename = "load.toml"
+    if len(sys.argv) > 1:
+        config_filename = sys.argv[1]
+
+    filename_components = config_filename.split('.')
+    if len(filename_components) > 1:
+        extension = filename_components[-1]
+
+        with open(config_filename, 'rb') as fin:
+            if extension == 'toml':
+                config = pytoml.load(fin)
+            elif extension in ['yaml', 'yml']:
+                config = yaml.load(fin)
+            elif extension == 'json':
+                config = json.load(fin)
+            else:
+                print("Config file has unsupported format: %s" % extension)
+    else:
+        print(
+            "Config file should have one of the following extensions:"
+            " .toml, .json, .yaml")
+        return 1
     init_logging()
-    event_loop = asyncio.get_event_loop()
-    event_loop.run_until_complete(main_coro(event_loop))
-    event_loop.close()
-
-
-@asyncio.coroutine
-def main_coro(event_loop):
-    ''' Main coroutine. Manage components' lifecycle '''
-
-    # Configure factories using config files
-    LOG.info("Configuring component factory")
-    cf = ComponentFactory("tmp/load.toml", event_loop)
-
-    # Create workers using 'bfg' section from config
-    LOG.info("Creating workers")
-    workers = [
-        cf.get_factory('bfg', bfg_name)
-        for bfg_name in cf.get_config('bfg')]
-
-    # Start workers and wait for them asyncronously
-    LOG.info("Starting workers")
-    [worker.start() for worker in workers]
-    LOG.info("Waiting for workers")
-    while any(worker.running() for worker in workers):
-        yield from asyncio.sleep(1)
-    LOG.info("All workers finished")
-
-    # Stop aggregator
-    rs = cf.get_factory('aggregator', 'lunapark')
-    yield from rs.stop()
+    lt = LoadTest(config)
+    lt.run_test()
 
 
 if __name__ == '__main__':

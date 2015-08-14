@@ -1,4 +1,3 @@
-import pytoml
 from .module_exceptions import ConfigurationError
 from .schedule import ScheduleFactory
 from .ammo import AmmoFactory
@@ -12,10 +11,9 @@ LOG = logging.getLogger(__name__)
 
 
 class ComponentFactory(object):
-    def __init__(self, config_filename, event_loop):
+    def __init__(self, config, event_loop):
         self.event_loop = event_loop
-        with open(config_filename, 'rb') as fin:
-            self.config = pytoml.load(fin)
+        self.config = config
         self.factories = {
             'schedule': ScheduleFactory(self),
             'ammo': AmmoFactory(self),

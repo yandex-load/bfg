@@ -1,3 +1,9 @@
+class CliArgumentError(Exception):
+    '''
+    Raised when error in CLI found.
+    '''
+
+
 class ConfigurationError(Exception):
     '''
     Raised when error in configuration found.
