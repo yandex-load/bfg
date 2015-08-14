@@ -25,9 +25,11 @@ support virtually any protocol that way).
 
 ## Architectural overview
 
-See architectural scheme in ```docs/architecture.graphml```. It is created with YeD editor, so you’ll probably
+See architectural scheme source in ```docs/architecture.graphml```. It was created with
+[YeD](https://www.yworks.com/en/products/yfiles/yed/) editor, so you’ll probably
 need it to open the file.
-![Architectural cheme](/docs/architecture.png)
+
+![Architectural scheme](/docs/architecture.png)
 
 ## Requirements and installation
 
@@ -39,9 +41,10 @@ Install from pip repository:
 pip install bfg
 ```
 
-## Configuration
+# Configuration
 
-BFG support TOML and YAML as config file formats. Look for examples in ```docs/examples```.
+BFG support [TOML](https://github.com/toml-lang/toml) and [YAML](http://yaml.org/spec/1.2/spec.html) as config file
+formats. Look for examples in ```docs/examples```.
 
 The main idea is that you can build several BFGs using *components*. Those components are obtained from component
 factories that you configured. Each factory is configured in its own config section. When you ask a component with
@@ -88,7 +91,7 @@ We configured ```aggregator```, ```ammo```, ```gun``` and ```schedule``` factori
 ```BFG``` factory. There are two schedules configured: ```line``` and ```ramp```, and we are using one of them, ```ramp```
 in our ```BFG.mobile``` component. There might also be the second BFG that would be using different ammo and shedule.
 
-### Module types
+## Modules configuration
 
 There are currently five module types:
 
@@ -98,10 +101,67 @@ There are currently five module types:
 4. ```aggregator``` -- results collector. It will also send it to uplinks
 5. ```bfg``` -- your BFGs. The place where you build your weapons by connecting other components
 
-## License
+### Ammo configuration
+
+For each ammo source, specify following parameters:
+
+* ```file``` -- path to ammo file
+* ```format``` -- ammo format
+
+The only supported ammo format by now is Line format. Line file format is very simple: one line equals one request data.
+If we have read all the requests from file, BFG will start over automatically.
+
+All markers are assigned to "None".
+
+Line format reader has additional parameter:
+
+```batch``` -- batch size, each task will contain multiple requests. In batch mode, marker is set to ```multi_n```, where
+n is the batch size.
+
+For example, look at the following config example (in TOML):
+
+```
+[ammo.myammo]
+format = "line"
+file = "/path/to/ammo.line"
+batch = 3
+```
+
+Each task will contain 3 lines from ```/path/to/ammo.line``` file 
+
+### Schedule configuration
+
+Each schedule is a list of elementary schedules:
+
+* ```line(start_rps, end_rps, period)``` -- raise load from ```start_rps``` to ```end_rps``` during ```period```
+* ```const(rps, period)``` -- hold load ```rps``` for ```period```
+* ```step(start_rps, end_rps, step_height, step_period)``` -- stairs-like load from ```start_rps``` to ```end_rps```
+
+```period``` is by default in seconds (34 -> 34 second) but you can also write something like ```2h32m5s``` -> 2 hours, 32 minutes and 5 seconds
+
+Example:
+```
+[schedule]
+ramp = ["line(1, 10, 10s)", const(10, 1h)]
+```
+-- constant load with warm-up period, raise load from 1 rps to 10 rps for 10 seconds and then hold 10 rps for 1 hour
+
+### Gun configuration
+
+*TODO*
+
+### Aggregator configuration
+
+*TODO*
+
+### BFG configuration
+
+*TODO*
+
+# License
 
 BFG is made available under the MIT License. For more details, see the LICENSE file in the repository.
 
-## Authors
+# Authors
 
 BFG is maintained by Alexey Lavrenuke <direvius@gmail.com>.

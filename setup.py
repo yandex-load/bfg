@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='bfg',
-    version='0.0.1',
+    version='0.0.2',
     description='a load generation tool and framework',
     longer_description='''
 BFG is a modular tool and framework for load generation.
