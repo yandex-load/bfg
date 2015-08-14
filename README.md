@@ -197,7 +197,7 @@ ramp = ["line(1, 10, 10s)", "const(10, 1h)"]
 
 Each type of gun is configured in its own way, but the common parameters are:
 
-* ```type``` -- gun type. There are currently two gun types: ```http2`` and ```scenario```
+* ```type``` -- gun type. There are currently two gun types: ```http2``` and ```scenario```
 * ```target``` -- where to shoot.
 
 Configuration example:
