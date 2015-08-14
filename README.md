@@ -148,15 +148,59 @@ ramp = ["line(1, 10, 10s)", const(10, 1h)]
 
 ### Gun configuration
 
+Each type of gun is configured in its own way, but the common parameters are:
+
+* ```type``` -- gun type. There are currently two gun types: ```http2`` and ```scenario```
+* ```target``` -- where to shoot.
+
+Configuration example:
+```
+[gun.mobile]
+type = 'http2'
+target = "http2.example.org"
+```
+
+#### HTTP/2 gun
+
 *TODO*
+
+#### Scenario gun
+
+*TODO*
+
 
 ### Aggregator configuration
 
-*TODO*
+For each aggregator, specify:
+
+* ```uplinks``` -- list of uplinks, where to send aggregated data
+* ```raw_file``` -- a file in which to put raw samples. If empty -- do not write raw samples
+
+The only uplink supported for now is MongoDB. Here is the configuration example:
+```
+[aggregator.caching]
+uplinks = ["mongo://localhost"]
+raw_file = "raw.samples"
+```
 
 ### BFG configuration
 
-*TODO*
+Here is the section where you combine other components to work together. These are the parameters:
+* ```gun``` -- a gun name (one of those you specified in gun section)
+* ```schedule``` -- schedule name
+* ```aggregator``` -- aggregator name
+* ```ammo``` -- ammo source name
+* ```instances``` -- number of workers in this pool
+
+Example:
+```
+[bfg.mobile]
+gun = "mobile"
+instances = 2
+schedule = "ramp"
+aggregator = "caching"
+ammo = "myammo"
+```
 
 # License
 

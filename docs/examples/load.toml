@@ -13,6 +13,7 @@ line = ["line(1, 30, 1m)"]
 
 [aggregator.caching]
 uplinks = ["mongo://localhost"]
+raw_file = "raw.samples"
 
 [bfg.mobile]
 gun = "mobile"
