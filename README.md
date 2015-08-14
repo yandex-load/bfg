@@ -18,6 +18,14 @@ Please be warned: BFG is in a very early alpha. You will encounter bugs when usi
 very many rough edges. With that said, please try it out: I need your feedback to fix the bugs and file down
 the rough edges.
 
+### Known issues
+
+* ```batch``` parameter in ammo -- not implemented
+* YAML and JSON configs support -- not implemented
+* ```raw_file``` parameter in aggregator -- not implemented
+* there are no default parameters so you need to specify all of them
+* some exceptions in HTTP/2 gun are not handled carefully
+
 ## Supported protocols
 
 For now, BFG supports HTTP/2 and it also possible to provide user scenarios as python modules (and you can
@@ -39,6 +47,45 @@ Install from pip repository:
 
 ```
 pip install bfg
+```
+
+## Quick start
+
+Save following config as ```load.toml```:
+```
+[gun.mobile]
+type = 'http2'
+target = "(your HTTP/2 server address here)"
+
+[ammo.myammo]
+file = "ammo.line"
+
+[schedule]
+ramp = ["line(1, 10, 10s)", "const(10, 10s)"]
+line = ["line(1, 30, 1m)"]
+
+[aggregator.caching]
+uplinks = []
+raw_file = "raw.samples"
+
+[bfg.mobile]
+gun = "mobile"
+instances = 2
+schedule = "ramp"
+aggregator = "caching"
+ammo = "myammo"
+```
+
+Create ammo file ```ammo.line```:
+```
+/
+/my/url
+/my/second/url
+```
+
+Run bfg:
+```
+bfg load.toml
 ```
 
 # Configuration
@@ -142,7 +189,7 @@ Each schedule is a list of elementary schedules:
 Example:
 ```
 [schedule]
-ramp = ["line(1, 10, 10s)", const(10, 1h)]
+ramp = ["line(1, 10, 10s)", "const(10, 1h)"]
 ```
 -- constant load with warm-up period, raise load from 1 rps to 10 rps for 10 seconds and then hold 10 rps for 1 hour
 
