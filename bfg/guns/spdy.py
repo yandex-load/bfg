@@ -200,7 +200,7 @@ class SpdyMultiGun(object):
                      stream_user_data=handler)
                 handlers.append(handler)
 
-            while ((session.want_read() or session.want_write())
+            while ((self.session.want_read() or self.session.want_write())
                     and not all(h.is_finished for h in handlers)):
                 want_read = want_write = False
                 try:
@@ -224,6 +224,11 @@ class SpdyMultiGun(object):
                     select.select([self.sock] if want_read else [],
                                   [self.sock] if want_write else [],
                                   [])
+
             overall_sw.stop()
             overall_sw.scenario = scenario
             overall_sw.action = "overall"
+
+            failed = [h for h in handlers if h.is_failed]
+            if failed:
+                overall_sw.set_error()
