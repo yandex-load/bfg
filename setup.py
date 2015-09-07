@@ -19,6 +19,7 @@ BFG is a modular tool and framework for load generation.
         'pandas',
         'PyYAML',
         'pytoml',
+        'python-spdylay',
     ],
     license='MIT',
     classifiers=[

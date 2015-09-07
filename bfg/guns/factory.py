@@ -4,6 +4,7 @@ Gun factory. Returns a gun of requested type
 #TODO: actually it doesn't for now
 from .http2 import HttpMultiGun
 from .scenario import ScenarioGun
+from .spdy import SpdyMultiGun
 from ..util import AbstractFactory
 from ..module_exceptions import ConfigurationError
 
@@ -14,6 +15,7 @@ class GunFactory(AbstractFactory):
     GUNS = {
         'http2': HttpMultiGun,
         'scenario': ScenarioGun,
+        'spdy': SpdyMultiGun
     }
 
     def get(self, key):
