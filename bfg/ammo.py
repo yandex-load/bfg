@@ -1,6 +1,7 @@
 ''' Ammo producers '''
 from .util import get_opener, AbstractFactory
 from .module_exceptions import ConfigurationError
+from .guns.http2 import Http2Ammo
 import logging
 
 
@@ -37,6 +38,19 @@ class Group(object):
             yield (
                 "multi-%s" % self.group_size,
                 [next(self.iterable) for _ in range(self.group_size)])
+
+
+class Http2AmmoProducer(object):
+
+    ''' Create HTTP/2 missiles from data '''
+
+    def __init__(self, iterable):
+        self.iterable = iter(iterable)
+
+    def __iter__(self):
+        while True:
+            ammo = next(self.iterable)
+            yield Http2Ammo("GET", ammo, {}, None)
 
 
 class AmmoFactory(AbstractFactory):

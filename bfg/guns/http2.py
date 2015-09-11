@@ -2,9 +2,12 @@
 Guns for HTTP/2
 '''
 import logging
+from collections import namedtuple
 from hyper import HTTP20Connection
 from hyper.http20.exceptions import ConnectionError
 from .measure import measure
+
+Http2Ammo = namedtuple("Http2Ammo", "method,uri,headers,body")
 
 
 LOG = logging.getLogger(__name__)
