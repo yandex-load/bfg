@@ -6,9 +6,10 @@ import select
 import ssl
 import socket
 import spdylay
-from .measure import StopWatch, measure
+from .base import GunBase, StopWatch
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+
 
 class SpdyTaskHandler(object):
     def __init__(self, task, scenario, results):
@@ -83,7 +84,7 @@ class SpdyTaskHandler(object):
         self.is_finished = True
 
 
-class SpdyMultiGun(object):
+class SpdyMultiGun(GunBase):
     '''
     Multi request gun. Only GET. Expects an array of (marker, request)
     tuples in task.data. A stream is opened for every request first and
@@ -98,13 +99,14 @@ class SpdyMultiGun(object):
     SPDY_VERSIONS = {
         spdylay.PROTO_SPDY2: "2",
         spdylay.PROTO_SPDY3: "3",
-        #spdylay.PROTO_SPDY3_1: "3.1"
+        # spdylay.PROTO_SPDY3_1: "3.1"
         4: "3.1"
     }
 
-    def __init__(self, config):
-        self.base_address = config.get('target')
-        LOG.info("Initialized spdy gun with target '%s'", self.base_address)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.base_address = self.get_option('target')
+        logger.info("Initialized spdy gun with target '%s'", self.base_address)
 
         self.ctx = None
         self.sock = None
@@ -112,8 +114,8 @@ class SpdyMultiGun(object):
 
     def connect(self):
         self.ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        self.ctx.options = (ssl.OP_ALL | ssl.OP_NO_SSLv2 |
-            ssl.OP_NO_COMPRESSION)
+        self.ctx.options = (
+            ssl.OP_ALL | ssl.OP_NO_SSLv2 | ssl.OP_NO_COMPRESSION)
         self.ctx.set_npn_protocols(spdylay.get_npn_protocols())
 
         self.sock = socket.create_connection((self.base_address, 443))
@@ -122,8 +124,9 @@ class SpdyMultiGun(object):
         version = spdylay.npn_get_version(self.sock.selected_npn_protocol())
         if version == 0:
             raise RuntimeError('NPN failed')
-        LOG.info("Negotiated SPDY version: %s",
-             self.SPDY_VERSIONS.get(version, 'unknown'))
+        logger.info(
+            "Negotiated SPDY version: %s",
+            self.SPDY_VERSIONS.get(version, 'unknown'))
 
         self.sock.setblocking(False)
         self.session = spdylay.Session(
@@ -173,35 +176,36 @@ class SpdyMultiGun(object):
         else:
             handler.on_error(status_code)
 
-    def shoot(self, task, results):
+    def shoot(self, task):
         if self.session is None:
             self.connect()
 
-        LOG.debug("Task: %s", task)
+        logger.debug("Task: %s", task)
         scenario = task.marker
         subtasks = [
             task._replace(data=missile[1], marker=missile[0])
             for missile in task.data
         ]
         handlers = []
-        with measure(task, results) as overall_sw:
+        with self.measure(task) as overall_sw:
             for subtask in subtasks:
-                LOG.debug("Request GET %s", subtask.data)
-                handler = SpdyTaskHandler(subtask, scenario, results)
+                logger.debug("Request GET %s", subtask.data)
+                handler = SpdyTaskHandler(subtask, scenario, self.results)
                 self.session.submit_request(
-                    0,
-                    [(':method', 'GET'),
-                     (':scheme', 'https'),
-                     (':path', subtask.data),
-                     (':version', 'HTTP/1.1'),
-                     (':host', self.base_address),
-                     ('accept', '*/*'),
-                     ('user-agent', 'bfg-spdy')],
-                     stream_user_data=handler)
+                    0, [
+                        (':method', 'GET'),
+                        (':scheme', 'https'),
+                        (':path', subtask.data),
+                        (':version', 'HTTP/1.1'),
+                        (':host', self.base_address),
+                        ('accept', '*/*'),
+                        ('user-agent', 'bfg-spdy')],
+                    stream_user_data=handler)
                 handlers.append(handler)
 
-            while ((self.session.want_read() or self.session.want_write())
-                    and not all(h.is_finished for h in handlers)):
+            while ((self.session.want_read() or
+                    self.session.want_write()) and not
+                    all(h.is_finished for h in handlers)):
                 want_read = want_write = False
                 try:
                     data = self.sock.recv(4096)

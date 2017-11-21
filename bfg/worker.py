@@ -2,7 +2,7 @@ import time
 import multiprocessing as mp
 import threading as th
 from queue import Empty, Full
-from .util import AbstractFactory
+from .util import FactoryBase
 from .module_exceptions import ConfigurationError
 from collections import namedtuple
 import asyncio
@@ -26,10 +26,10 @@ class BFG(object):
     '''
     def __init__(
             self, gun, load_plan, results, name, instances, event_loop):
-        self.results = results
         self.name = name
         self.instances = instances
         self.gun = gun
+        self.gun.results = results
         self.load_plan = load_plan
         self.event_loop = event_loop
         LOG.info(
@@ -42,7 +42,6 @@ Gun: {gun.__class__.__name__}
             instances=self.instances,
             gun=gun,
         ))
-        self.results = results
         self.quit = mp.Event()
         self.task_queue = mp.Queue(1024)
         self.pool = [
@@ -56,7 +55,6 @@ Gun: {gun.__class__.__name__}
             process.daemon = True
             process.start()
         self.event_loop.create_task(self._feeder())
-        #self.event_loop.create_task(self._wait())
 
     @asyncio.coroutine
     def _wait(self):
@@ -145,7 +143,7 @@ Gun: {gun.__class__.__name__}
                 delay = task.ts - time.time()
                 if delay > 0:
                     time.sleep(delay)
-                self.gun.shoot(task, self.results)
+                self.gun.shoot(task)
             except (KeyboardInterrupt, SystemExit):
                 return
             except Empty:
@@ -156,7 +154,7 @@ Gun: {gun.__class__.__name__}
                     return
 
 
-class BFGFactory(AbstractFactory):
+class BFGFactory(FactoryBase):
     FACTORY_NAME = 'bfg'
 
     def get(self, bfg_name):

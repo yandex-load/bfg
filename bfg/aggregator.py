@@ -6,19 +6,19 @@ import threading as th
 import queue
 import multiprocessing as mp
 from .module_exceptions import ConfigurationError
-from .util import AbstractFactory
-from .guns.measure import Sample
+from .util import FactoryBase
+from .guns.base import Sample
 from .util import q_to_dict
 import asyncio
 import time
+from dateutil import tz
 import numpy as np
 import pandas as pd
-from pymongo import MongoClient
-from bson import ObjectId
+import arrow
 import logging
 
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ResultsSink(object):
@@ -47,14 +47,14 @@ class ResultsSink(object):
         Read from results queue asyncronously and put samples into
         results dict
         '''
-        LOG.info("Results reader started")
+        logger.info("Results reader started")
         while not self._stop:
             try:
                 sample = self.results_queue.get_nowait()
                 self.results.setdefault(sample.ts, []).append(sample)
             except queue.Empty:
                 yield from asyncio.sleep(1)
-        LOG.info("Results reader stopped")
+        logger.info("Results reader stopped")
         self.stopped = True
 
 
@@ -104,14 +104,14 @@ class CachingAggregator(object):
         Read everything from the queue until it empty, then sleep
         for half a second
         '''
-        LOG.info("Results reader started")
+        logger.info("Results reader started")
         while not self._stop:
             try:
                 sample = self.results_queue.get_nowait()
                 self.results.setdefault(sample.ts, []).append(sample)
             except queue.Empty:
                 yield from asyncio.sleep(0.5)
-        LOG.info("Results reader stopped")
+        logger.info("Results reader stopped")
         self.reader_stopped = True
 
     @asyncio.coroutine
@@ -126,7 +126,7 @@ class CachingAggregator(object):
         start_time = time.time()
         while not (self.reader_stopped and len(self.results) == 0):
             work_time = time.time() - start_time
-            LOG.info("Last aggregation took %02d µs", work_time * 1000000)
+            logger.debug("Last aggregation took %02d µs", work_time * 1000000)
             delay = 1 - work_time
             if delay > 0:
                 yield from asyncio.sleep(delay)
@@ -137,14 +137,14 @@ class CachingAggregator(object):
                     smallest_key, self.results.pop(smallest_key))
                 if aggr:
                     self.publish(ts, aggr)
-        LOG.info("Results aggregator stopped")
+        logger.info("Results aggregator stopped")
         self.aggregator_stopped = True
 
     def publish(self, ts, aggr):
         '''
         Send aggregated data to the listeners
         '''
-        LOG.info("Publishing aggregated data for %s:\n%s", ts, aggr)
+        logger.debug("Publishing aggregated data for %s:\n%s", ts, aggr)
         self.aggregated_results[ts] = aggr
         [l.publish(ts, aggr) for l in self.listeners]
 
@@ -172,7 +172,7 @@ class CachingAggregator(object):
         compute some statistics and return aggregated data
         '''
         if ts in self.aggregated_results:
-            LOG.warning(
+            logger.warning(
                 "%s already aggregated. Some data points lost."
                 "Try increasing aggregator cachesize")
             return ts, None
@@ -187,22 +187,20 @@ class CachingAggregator(object):
         return ts, aggr
 
 
-class MongoUplink(object):
-    ''' An uplink to MongoDB. Acts as a listener for aggregator '''
-
-    def __init__(self, address='mongodb://localhost:27017/'):
-        self.client = MongoClient(address)
-        self.collection = self.client.bfg.test_results
-        self.oid = ObjectId()
-
-    def publish(self, ts, sample):
-        self.collection.update_one(
-            {"_id": self.oid},
-            {"$set": {"samples.%s" % ts: sample}},
-            True)
+class LoggingListener(object):
+    def publish(self, ts, data):
+        rt_stats = data.get('overall').get('rt')
+        logger.info(
+            "{ts} {rps} RPS, mean RT: {rt_avg:.3f} ms, 99% < {rt_q99:.3f} ms".format(
+                ts=arrow.get(ts).to(tz.gettz()).format('HH:mm:ss'),
+                rps=data.get('rps'),
+                rt_avg=rt_stats.get('avg') / 1000,
+                rt_q99=rt_stats.get('quantiles').get('99') / 1000
+            )
+        )
 
 
-class AggregatorFactory(AbstractFactory):
+class AggregatorFactory(FactoryBase):
     ''' Factory that produces aggregators '''
 
     FACTORY_NAME = "aggregator"
@@ -211,7 +209,7 @@ class AggregatorFactory(AbstractFactory):
         super().__init__(component_factory)
         self.results = CachingAggregator(
             self.event_loop,
-            listeners=[MongoUplink()])
+            listeners=[LoggingListener()])
 
     def get(self, key):
         if key in self.factory_config:

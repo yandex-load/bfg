@@ -45,7 +45,7 @@ def init_logging(debug=False, filename='bfg.log'):
 
 def main():
     ''' Run test '''
-    config_filename = "load.toml"
+    config_filename = "load.yaml"
     if len(sys.argv) > 1:
         config_filename = sys.argv[1]
 

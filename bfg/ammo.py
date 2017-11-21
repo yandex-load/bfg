@@ -1,5 +1,5 @@
 ''' Ammo producers '''
-from .util import get_opener, AbstractFactory
+from .util import get_opener, FactoryBase
 from .module_exceptions import ConfigurationError
 from .guns.http2 import Http2Ammo
 import logging
@@ -53,7 +53,7 @@ class Http2AmmoProducer(object):
             yield Http2Ammo("GET", ammo, {}, None)
 
 
-class AmmoFactory(AbstractFactory):
+class AmmoFactory(FactoryBase):
     FACTORY_NAME = 'ammo'
 
     def get(self, key):

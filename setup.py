@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='bfg',
-    version='0.0.2',
+    version='0.1.0',
     description='a load generation tool and framework',
     longer_description='''
 BFG is a modular tool and framework for load generation.
@@ -12,14 +12,15 @@ BFG is a modular tool and framework for load generation.
     maintainer='Alexey Lavrenuke (load testing)',
     maintainer_email='direvius@gmail.com',
     url='https://github.com/direvius/bfg',
-    packages=["bfg"],
+    packages=find_packages(exclude=["tests", "tmp", "docs", "data"]),
     install_requires=[
         'hyper',
         'numpy',
         'pandas',
         'PyYAML',
         'pytoml',
-        'python-spdylay',
+        'arrow',
+        # 'python-spdylay',
     ],
     license='MIT',
     classifiers=[

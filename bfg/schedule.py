@@ -2,7 +2,7 @@
 Load Plan generators
 '''
 import re
-from .util import parse_duration, solve_quadratic, AbstractFactory
+from .util import parse_duration, solve_quadratic, FactoryBase
 from .module_exceptions import ConfigurationError
 from itertools import chain, groupby
 import logging
@@ -234,7 +234,7 @@ def create(rps_schedule):
     return lp
 
 
-class ScheduleFactory(AbstractFactory):
+class ScheduleFactory(FactoryBase):
     FACTORY_NAME = 'schedule'
 
     def get(self, key):

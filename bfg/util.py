@@ -109,7 +109,7 @@ def q_to_dict(df):
         for k, v in df.to_dict().items()}
 
 
-class AbstractFactory(object):
+class FactoryBase(object):
     '''
     Base class for factories.
     Initializes internal fields:

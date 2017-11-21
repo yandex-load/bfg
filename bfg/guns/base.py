@@ -34,7 +34,7 @@ Sample = namedtuple(
 
 class StopWatch(object):
     '''
-    Sample builder that automatically makes some assumptions about field values.
+    Sample builder that automatically makes some assumptions about field values
     For example, start time is set to the time this object was created. Note
     that StopWatch internal times are in seconds and Sample fields are in
     milliseconds
@@ -67,7 +67,7 @@ class StopWatch(object):
         self.code = code
 
     def as_sample(self):
-        overall = (self.end_time - self.start_time) * 1000
+        overall = int((self.end_time - self.start_time) * 1e6)
         return Sample(
             int(self.start_time),
             self.task.bfg,
@@ -75,20 +75,29 @@ class StopWatch(object):
             overall,
             self.error,
             self.code,
-            (self.start_time - self.task.ts) * 1000,
+            int((self.start_time - self.task.ts) * 1e6),
             self.scenario,
             self.action,
             self.ext,
         )
 
 
-@contextmanager
-def measure(task, results):
-    '''
-    Measurement context. Use the stopwatch yielded
-    to provide additional info
-    '''
-    sw = StopWatch(task)
-    yield sw
-    sw.stop()
-    results.put(sw.as_sample())
+class GunBase(object):
+
+    def __init__(self, config):
+        self.results = None
+        self.config = config
+
+    def get_option(self, option):
+        return self.config.get(option)
+
+    @contextmanager
+    def measure(self, task):
+        '''
+        Measurement context. Use the stopwatch yielded
+        to provide additional info
+        '''
+        sw = StopWatch(task)
+        yield sw
+        sw.stop()
+        self.results.put(sw.as_sample())
