@@ -56,13 +56,12 @@ Gun: {gun.__class__.__name__}
             process.start()
         self.event_loop.create_task(self._feeder())
 
-    @asyncio.coroutine
-    def _wait(self):
+    async def _wait(self):
         try:
             logger.info("%s is waiting for workers", self.name)
             while mp.active_children():
                 logger.debug("Active children: %d", len(mp.active_children()))
-                yield from asyncio.sleep(1)
+                await asyncio.sleep(1)
             logger.info("All workers of %s have exited", self.name)
             self.workers_finished = True
         except (KeyboardInterrupt, SystemExit):
@@ -70,7 +69,7 @@ Gun: {gun.__class__.__name__}
             self.quit.set()
             while mp.active_children():
                 logger.debug("Active children: %d", len(mp.active_children()))
-                yield from asyncio.sleep(1)
+                await asyncio.sleep(1)
             logger.info("All workers of %s have exited", self.name)
             self.workers_finished = True
 
@@ -88,8 +87,7 @@ Gun: {gun.__class__.__name__}
         '''
         self.quit.set()
 
-    @asyncio.coroutine
-    def _feeder(self):
+    async def _feeder(self):
         '''
         A feeder coroutine
         '''
@@ -110,7 +108,7 @@ Gun: {gun.__class__.__name__}
                     if self.quit.is_set() or self.workers_finished:
                         return
                     else:
-                        yield from asyncio.sleep(1)
+                        await asyncio.sleep(1)
         workers_count = self.instances
         logger.info(
             "%s have feeded all data. Publishing %d poison pills",
@@ -124,7 +122,7 @@ Gun: {gun.__class__.__name__}
                 logger.warning(
                     "%s could not publish killer tasks."
                     "task queue is full. Retry in 1s", self.name)
-                yield from asyncio.sleep(1)
+                await asyncio.sleep(1)
 
     def _worker(self):
         '''

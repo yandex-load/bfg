@@ -32,17 +32,15 @@ class ResultsSink(object):
         self.stopped = False
         self.event_loop.create_task(self._reader())
 
-    @asyncio.coroutine
-    def stop(self):
+    async def stop(self):
         '''
         Signal the reading coroutine to stop and wait for it
         '''
         self._stop = True
         while not self.stopped:
-            yield from asyncio.sleep(1)
+            await asyncio.sleep(1)
 
-    @asyncio.coroutine
-    def _reader(self):
+    async def _reader(self):
         '''
         Read from results queue asyncronously and put samples into
         results dict
@@ -53,7 +51,7 @@ class ResultsSink(object):
                 sample = self.results_queue.get_nowait()
                 self.results.setdefault(sample.ts, []).append(sample)
             except queue.Empty:
-                yield from asyncio.sleep(1)
+                await asyncio.sleep(1)
         logger.info("Results reader stopped")
         self.stopped = True
 
@@ -83,8 +81,7 @@ class CachingAggregator(object):
         self.event_loop.create_task(self._reader())
         self.event_loop.create_task(self._aggregator())
 
-    @asyncio.coroutine
-    def stop(self):
+    async def stop(self):
         '''
         Set cache-depth to 0 in order to aggregate all the results in buffer.
         Aggregator will exit automatically when it observe that reader is
@@ -94,12 +91,11 @@ class CachingAggregator(object):
         self.cache_depth = 0  # empty the cache
         self._stop = True
         while not self.reader_stopped:
-            yield from asyncio.sleep(1)
+            await asyncio.sleep(1)
         while not self.aggregator_stopped:
-            yield from asyncio.sleep(1)
+            await asyncio.sleep(1)
 
-    @asyncio.coroutine
-    def _reader(self):
+    async def _reader(self):
         '''
         Read everything from the queue until it empty, then sleep
         for half a second
@@ -110,12 +106,11 @@ class CachingAggregator(object):
                 sample = self.results_queue.get_nowait()
                 self.results.setdefault(sample.ts, []).append(sample)
             except queue.Empty:
-                yield from asyncio.sleep(0.5)
+                await asyncio.sleep(0.5)
         logger.info("Results reader stopped")
         self.reader_stopped = True
 
-    @asyncio.coroutine
-    def _aggregator(self):
+    async def _aggregator(self):
         '''
         Sleep before next aggregation is needed (aggregations performed
         once each second), grab the oldest data from the buffer maintaning
@@ -129,7 +124,7 @@ class CachingAggregator(object):
             logger.debug("Last aggregation took %02d µs", work_time * 1000000)
             delay = 1 - work_time
             if delay > 0:
-                yield from asyncio.sleep(delay)
+                await asyncio.sleep(delay)
             start_time = time.time()
             for _ in range(len(self.results) - self.cache_depth):
                 smallest_key = min(self.results.keys())

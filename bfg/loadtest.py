@@ -24,8 +24,7 @@ class LoadTest(object):
     def run_test(self):
         self.event_loop.run_until_complete(self._test())
 
-    @asyncio.coroutine
-    def _test(self):
+    async def _test(self):
         ''' Main coroutine. Manage components' lifecycle '''
 
         # Configure factories using config files
@@ -43,9 +42,9 @@ class LoadTest(object):
         [worker.start() for worker in workers]
         logger.info("Waiting for workers")
         while any(worker.running() for worker in workers):
-            yield from asyncio.sleep(1)
+            await asyncio.sleep(1)
         logger.info("All workers finished")
 
         # Stop aggregator
         rs = cf.get_factory('aggregator', 'lunapark')
-        yield from rs.stop()
+        await rs.stop()
