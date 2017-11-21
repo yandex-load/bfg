@@ -8,7 +8,7 @@ from collections import namedtuple
 import asyncio
 import logging
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 Task = namedtuple(
@@ -32,7 +32,7 @@ class BFG(object):
         self.gun.results = results
         self.load_plan = load_plan
         self.event_loop = event_loop
-        LOG.info(
+        logger.info(
             '''
 Name: {name}
 Instances: {instances}
@@ -59,19 +59,19 @@ Gun: {gun.__class__.__name__}
     @asyncio.coroutine
     def _wait(self):
         try:
-            LOG.info("%s is waiting for workers", self.name)
+            logger.info("%s is waiting for workers", self.name)
             while mp.active_children():
-                LOG.debug("Active children: %d", len(mp.active_children()))
+                logger.debug("Active children: %d", len(mp.active_children()))
                 yield from asyncio.sleep(1)
-            LOG.info("All workers of %s have exited", self.name)
+            logger.info("All workers of %s have exited", self.name)
             self.workers_finished = True
         except (KeyboardInterrupt, SystemExit):
             self.task_queue.close()
             self.quit.set()
             while mp.active_children():
-                LOG.debug("Active children: %d", len(mp.active_children()))
+                logger.debug("Active children: %d", len(mp.active_children()))
                 yield from asyncio.sleep(1)
-            LOG.info("All workers of %s have exited", self.name)
+            logger.info("All workers of %s have exited", self.name)
             self.workers_finished = True
 
     def running(self):
@@ -96,7 +96,7 @@ Gun: {gun.__class__.__name__}
         for task in self.load_plan:
             task = task._replace(bfg=self.name)
             if self.quit.is_set():
-                LOG.info(
+                logger.info(
                     "%s observed quit flag and not going to feed anymore",
                     self.name)
                 return
@@ -112,7 +112,7 @@ Gun: {gun.__class__.__name__}
                     else:
                         yield from asyncio.sleep(1)
         workers_count = self.instances
-        LOG.info(
+        logger.info(
             "%s have feeded all data. Publishing %d poison pills",
             self.name, workers_count)
         while True:
@@ -121,7 +121,7 @@ Gun: {gun.__class__.__name__}
                     0, workers_count)]
                 break
             except Full:
-                LOG.warning(
+                logger.warning(
                     "%s could not publish killer tasks."
                     "task queue is full. Retry in 1s", self.name)
                 yield from asyncio.sleep(1)
@@ -130,28 +130,30 @@ Gun: {gun.__class__.__name__}
         '''
         A worker that runs in a distinct process
         '''
-        LOG.info("Started shooter process: %s", mp.current_process().name)
+        logger.info("Started shooter process: %s", mp.current_process().name)
+        self.gun.setup()
         while not self.quit.is_set():
             try:
                 task = self.task_queue.get(timeout=1)
                 if not task:
-                    LOG.info(
+                    logger.info(
                         "Got poison pill. Exiting %s",
                         mp.current_process().name)
-                    return
+                    break
                 task = task._replace(ts=self.start_time + (task.ts / 1000.0))
                 delay = task.ts - time.time()
                 if delay > 0:
                     time.sleep(delay)
                 self.gun.shoot(task)
             except (KeyboardInterrupt, SystemExit):
-                return
+                break
             except Empty:
                 if self.quit.is_set():
-                    LOG.debug(
+                    logger.debug(
                         "Empty queue and quit flag. Exiting %s",
                         mp.current_process().name)
-                    return
+                    break
+        self.gun.teardown()
 
 
 class BFGFactory(FactoryBase):

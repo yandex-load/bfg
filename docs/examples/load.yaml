@@ -1,27 +1,30 @@
 aggregator:
-  caching:
-    uplinks: ['mongo://localhost']
+  lunapark:
+    lunapark: 'http://lunapark.yandex-team.ru'
 ammo:
-  myammo: {file: ./tmp/ammo.line}
+  my_ammo:
+    file: ./ammo.line
 bfg:
-  mobile:
-    aggregator: caching
-    ammo: myammo
-    gun: mobile
+  my_http2:
+    aggregator: lunapark
+    ammo: my_ammo
+    gun: my_second_gun
     instances: 2
     schedule: ramp
-  mobile2:
-    aggregator: caching
-    ammo: myammo
-    gun: mobile
+  my_scenario: 
+    aggregator: lunapark
+    ammo: my_ammo
+    gun: my_second_gun
     instances: 4
     schedule: ramp
 gun:
-  mobile:
+  my_first_gun:
     max_streams: 2
-    target: http2.example.org
+    target: 'example.org'
     type: http2
     window_size: 128
+  my_second_gun:
+    type: ultimate
 schedule:
   line: ['line(1, 30, 1m)']
   ramp: ['line(1, 10, 10s)', 'const(10, 10s)']

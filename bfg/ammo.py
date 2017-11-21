@@ -5,7 +5,7 @@ from .guns.http2 import Http2Ammo
 import logging
 
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class LineReader(object):
@@ -16,12 +16,18 @@ class LineReader(object):
         self.filename = filename
 
     def __iter__(self):
-        LOG.info("LineReader. Using '%s' as ammo source", self.filename)
+        logger.info("LineReader. Using '%s' as ammo source", self.filename)
         with get_opener(self.filename)(self.filename, 'r') as ammo_file:
             while True:
                 for line in ammo_file:
-                    yield ("None", line.rstrip('\r\n'))
-                LOG.debug("EOF. Restarting from the beginning")
+                    parts = line.rstrip('\r\n').split(maxsplit=1)
+                    if len(parts) == 2:
+                        yield (parts[1], parts[0])
+                    elif len(parts) == 1:
+                        yield ("", parts[0])
+                    else:
+                        raise RuntimeError("Unreachable branch")
+                logger.debug("EOF. Restarting from the beginning")
                 ammo_file.seek(0)
 
 
@@ -61,8 +67,12 @@ class AmmoFactory(FactoryBase):
         Return a _new_ reader every time
         '''
         if key in self.factory_config:
-            return Group(
-                LineReader(self.factory_config.get(key).get("file")), 10)
+            ammo_config = self.factory_config.get(key)
+            ammo_reader = LineReader(self.factory_config.get(key).get("file"))
+            batch_size = ammo_config.get("batch", 1)
+            if batch_size > 1:
+                ammo_reader = Group(ammo_reader, batch_size)
+            return ammo_reader
         else:
             raise ConfigurationError(
                 "Configuration for %s ammo not found" % key)

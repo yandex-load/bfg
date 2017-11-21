@@ -6,6 +6,9 @@ from contextlib import contextmanager
 import time
 from collections import namedtuple
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 '''
 Sample is the data type that guns should produce
@@ -88,8 +91,8 @@ class GunBase(object):
         self.results = None
         self.config = config
 
-    def get_option(self, option):
-        return self.config.get(option)
+    def get_option(self, option, default=None):
+        return self.config.get(option, default)
 
     @contextmanager
     def measure(self, task):
@@ -98,6 +101,21 @@ class GunBase(object):
         to provide additional info
         '''
         sw = StopWatch(task)
-        yield sw
-        sw.stop()
-        self.results.put(sw.as_sample())
+        try:
+            yield sw
+        except Exception as e:
+            sw.set_error()
+            raise e
+        finally:
+            sw.stop()
+            self.results.put(sw.as_sample())
+
+    def setup(self):
+        pass
+
+    def shoot(self, task):
+        raise NotImplementedError(
+            "Gun should implement 'shoot(self, task)' method")
+
+    def teardown(self):
+        pass

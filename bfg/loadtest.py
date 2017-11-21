@@ -7,7 +7,7 @@ import asyncio
 import logging
 
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class LoadTest(object):
@@ -29,22 +29,22 @@ class LoadTest(object):
         ''' Main coroutine. Manage components' lifecycle '''
 
         # Configure factories using config files
-        LOG.info("Configuring component factory")
+        logger.info("Configuring component factory")
         cf = ComponentFactory(self.config, self.event_loop)
 
         # Create workers using 'bfg' section from config
-        LOG.info("Creating workers")
+        logger.info("Creating workers")
         workers = [
             cf.get_factory('bfg', bfg_name)
             for bfg_name in cf.get_config('bfg')]
 
         # Start workers and wait for them asyncronously
-        LOG.info("Starting workers")
+        logger.info("Starting workers")
         [worker.start() for worker in workers]
-        LOG.info("Waiting for workers")
+        logger.info("Waiting for workers")
         while any(worker.running() for worker in workers):
             yield from asyncio.sleep(1)
-        LOG.info("All workers finished")
+        logger.info("All workers finished")
 
         # Stop aggregator
         rs = cf.get_factory('aggregator', 'lunapark')

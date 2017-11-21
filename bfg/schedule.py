@@ -8,7 +8,7 @@ from itertools import chain, groupby
 import logging
 
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Const(object):
@@ -144,7 +144,7 @@ class Stairway(Composite):
         ]
         if (n_steps + 1) * increment < maxrps:
             steps.append(Const(maxrps, duration))
-        LOG.info(steps)
+        logger.info(steps)
         super(Stairway, self).__init__(steps)
 
 
@@ -224,13 +224,13 @@ def create(rps_schedule):
     [0]
 
     '''
-    LOG.info("Creating load plan %s", rps_schedule)
+    logger.info("Creating load plan %s", rps_schedule)
     if len(rps_schedule) > 1:
         lp = Composite([StepFactory.produce(step_config)
                        for step_config in rps_schedule])
     else:
         lp = StepFactory.produce(rps_schedule[0])
-    LOG.info('Planned duration: %.2d sec', lp.get_duration() / 1000)
+    logger.info('Planned duration: %.2d sec', lp.get_duration() / 1000)
     return lp
 
 

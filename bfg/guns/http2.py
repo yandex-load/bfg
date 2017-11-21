@@ -65,7 +65,7 @@ class HttpMultiGun(GunBase):
                         logger.warning("Error getting response: %s", str(e))
                     else:
                         sw.stop()
-                        sw.set_code(resp.status)
+                        sw.set_code(str(resp.status))
                     sw.scenario = scenario
                     sw.action = "response"
             overall_sw.stop()

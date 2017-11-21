@@ -182,7 +182,7 @@ class CachingAggregator(object):
 
         aggr = {
             "rps": len(df),
-            "overall": self._stat_for_df(df[df.action == "overall"]),
+            "overall": self._stat_for_df(df),
         }
         return ts, aggr
 

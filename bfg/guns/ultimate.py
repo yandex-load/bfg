@@ -2,7 +2,10 @@
 Ultimate gun
 '''
 import imp
-from .base import GunBase
+from .base import GunBase, Sample
+from queue import Full
+import time
+from contextlib import contextmanager
 import logging
 
 
@@ -19,10 +22,10 @@ class UltimateGun(GunBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        module_name = self.get_option("module_name")
-        module_path = self.get_option("module_path")
-        class_name = self.get_option("class_name")
-        self.init_param = self.get_option("init_param")
+        module_name = self.get_option("module_name", "gun")
+        module_path = self.get_option("module_path", ".")
+        class_name = self.get_option("class_name", "LoadTest")
+        self.init_param = self.get_option("init_param", "")
         if module_path:
             module_path = module_path.split()
         else:
@@ -49,14 +52,14 @@ class UltimateGun(GunBase):
         if callable(getattr(self.load_test, "teardown", None)):
             self.load_test.teardown()
 
-    def shoot(self, missile, marker):
-        marker = marker.rsplit("#", 1)[0]  # support enum_ammo
+    def shoot(self, task):
+        marker = task.marker.rsplit("#", 1)[0]  # support enum_ammo
         if not marker:
             marker = "default"
         scenario = getattr(self.load_test, marker, None)
         if callable(scenario):
             try:
-                scenario(missile)
+                scenario(task)
             except Exception as e:
                 logger.warning(
                     "Scenario %s failed with %s",
