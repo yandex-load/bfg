@@ -130,6 +130,9 @@ Gun: {gun.__class__.__name__}
         '''
         A worker that runs in a distinct process
         '''
+
+        # TODO: implement asyncio eventloop here
+
         logger.info("Started shooter process: %s", mp.current_process().name)
         self.gun.setup()
         while not self.quit.is_set():
